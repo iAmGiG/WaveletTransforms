@@ -1,0 +1,8 @@
+numpy
+pywt
+scikit-learn
+matplotlib # For plotting, if needed for visualization
+pandas # If you need to handle data in tabular form
+jupyter # If you're using Jupyter notebooks for development
+tensorflow # Or pytorch, depending on which one you'll use for neural networks
+huggingface_hub # If you plan to use models from Hugging Face
