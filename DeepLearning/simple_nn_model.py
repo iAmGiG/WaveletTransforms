@@ -1,8 +1,15 @@
+import os
+import datetime as datetime
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import to_categorical
+
+save_dir = './DeepLearning/SavedStandardModels'
+os.makedirs(save_dir, exist_ok=True)
+now = datetime.datetime.now()
+date_time = now.strftime("%m-%d_%H-%M")
 
 
 def load_dataset():
@@ -33,9 +40,13 @@ def train_model():
     model = define_model()
     model.fit(trainX, trainY, epochs=10, batch_size=32,
               validation_data=(testX, testY))
+    model.save(model_filename)
     return model
 
 
 if __name__ == "__main__":
+    model_filename = f"mnist_model_{date_time}.h5"
+    full_path = os.path.join(save_dir, model_filename)
     model = train_model()
     model.summary()
+    print(f"Model saved as {model_filename}")

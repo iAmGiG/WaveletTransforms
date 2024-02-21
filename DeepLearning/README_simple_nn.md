@@ -75,3 +75,18 @@ with virtual py environment:
 ```bash
 pip install numpy matplotlib pywavelets scikit-learn pandas huggingface_hub
 ```
+
+---------------
+
+## applying the DWT
+
+After the model is trained and evaluated, next we'll integrate the wavelet transform process into another solution.
+
+### The approach
+
+- **Extract Weights:** Access the weights fro meach layer of the model that you wish to compress. within Tensorflow, this is done with 'get_weights()' method on teh layer of interest.
+- **Applying DWT:** Using teh PyWavelets libray to apply DWT to the weights. We will need to decided on the wavelete type and the level of decomposition. This will yeild a set of coefficients representing the wavelet-transformed weights.
+- **Thresholding:** Optionally apply thresholding to these coefficients to increase sparsity, setting small coefficients to zero. Essential for compression.
+- **Inverse DWT:** applying the inverse wavelet transform (IDWT) to the modified coefficients to reconstruct teh weights in their original shape.
+- **Updated model Weights:** Replace the original weights in the model with the reconstructed weights from the IDWT process.
+- **Retain or Evaluate:** We may want to retain the models for evaluation as we progress.
