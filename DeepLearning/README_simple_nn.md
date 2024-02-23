@@ -150,3 +150,20 @@ total_weights = np.sum([w.size for w in weights])
 sparsity = zero_weights / total_weights
 print(f"Sparsity: {sparsity*100:.2f}%")
 ```
+
+## Integrating DWT into Model Training
+
+This project explores the impact of applying Discrete Wavelet Transform (DWT) to the weights of a neural network before training. The aim is to investigate how DWT affects model compression, performance, and efficiency. The process involves:
+
+1. **DWT Application**: A custom Python function applies DWT to the model's initial weights using the PyWavelets library, focusing on layers that are most impactful for compression.
+
+2. **Model Training**: With DWT-applied weights, the model undergoes standard training procedures. This step is crucial for understanding how pre-training weight modification influences learning and model accuracy.
+
+3. **Performance Evaluation**: Post-training, the model is evaluated on standard metrics including accuracy, model size, inference speed, and weight sparsity. This evaluation provides insights into the benefits and trade-offs of using DWT for model compression.
+
+### Implementation Highlights
+
+- The DWT modification is implemented as a preprocessing step to model training, offering a novel approach to weight initialization and compression.
+- This process is designed to be reproducible and adjustable, allowing for experimentation with different wavelet types and compression strategies.
+
+For detailed code examples and further implementation specifics, refer to `simple_nn_model_dwt.py` in the project repository.
