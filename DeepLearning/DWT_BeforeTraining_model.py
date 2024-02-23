@@ -1,18 +1,10 @@
-import os
-import datetime as datetime
-import pywt
 import numpy as np
+import pywt
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import to_categorical
-
-save_dir = './DeepLearning/SavedStandardModels'
-os.makedirs(save_dir, exist_ok=True)
-now = datetime.datetime.now()
-date_time = now.strftime("%m-%d_%H-%M")
-
 
 def load_dataset():
     # Load dataset
@@ -25,7 +17,6 @@ def load_dataset():
     testY = to_categorical(testY)
     return trainX, trainY, testX, testY
 
-
 def define_model():
     model = Sequential([
         Flatten(input_shape=(28, 28)),
@@ -36,42 +27,31 @@ def define_model():
                   loss='categorical_crossentropy', metrics=['accuracy'])
     return model
 
-
-def train_model():
-    trainX, trainY, testX, testY = load_dataset()
-    model = define_model()
-    model.fit(trainX, trainY, epochs=10, batch_size=32,
-              validation_data=(testX, testY))
-    model.save(model_filename)
-    return model
-
-def apply_dwt(weights, wavelet='haar'):
-    # Example function to apply DWT to weights
+def apply_dwt_and_reconstruct(weights, wavelet='haar'):
+    # Assuming weights are a 2D matrix
     coeffs = pywt.dwt2(weights, wavelet)
-    # Flatten or process coeffs to use in the model
-    # This is simplified; actual implementation may vary
-    return coeffs
+    cA, (cH, cV, cD) = coeffs
+    # Use only approximation coefficients for reconstruction
+    reconstructed = pywt.idwt2((cA, (None, None, None)), wavelet)
+    # Ensure the reconstructed shape matches the original shape
+    reconstructed = np.resize(reconstructed, weights.shape)
+    return reconstructed
 
 def train_model_with_dwt():
     trainX, trainY, testX, testY = load_dataset()
     model = define_model()
     
     # Apply DWT to model weights
-    for layer in model.layers:
-        if hasattr(layer, 'get_weights') and len(layer.get_weights()) > 0:
+    for i, layer in enumerate(model.layers):
+        if 'dense' in layer.name:
             weights, biases = layer.get_weights()
-            transformed_weights = apply_dwt(weights)  # Simplified
-            layer.set_weights([transformed_weights, biases])
+            transformed_weights = apply_dwt_and_reconstruct(weights)
+            model.layers[i].set_weights([transformed_weights, biases])
     
-    # Continue with training as usual
     model.fit(trainX, trainY, epochs=10, batch_size=32, validation_data=(testX, testY))
-    model.save(os.path.join(save_dir, f"DWT_{model_filename}"))  # Save with DWT prefix for clarity
+    model.save(f'./DeepLearning/SavedStandardModels/mnist_model_dwt.h5')
     return model
 
-
 if __name__ == "__main__":
-    model_filename = f"mnist_DWT_{date_time}.h5"
-    full_path = os.path.join(save_dir, model_filename)
-    model = train_model()
+    model = train_model_with_dwt()
     model.summary()
-    print(f"Model saved as {model_filename}")
