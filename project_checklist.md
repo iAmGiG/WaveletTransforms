@@ -11,8 +11,8 @@
 - [ ] Train the selected model on the chosen dataset to establish a baseline performance metric.
 - [ ] Apply DWT to the model's weight matrices to increase sparsity.
 - [ ] Retrain the model post-DWT application and compare performance to the baseline.
-    - [ ] Evaluate classification accuracy before and after DWT application.
-    - [ ] Assess model size reduction and efficiency improvements.
+  - [ ] Evaluate classification accuracy before and after DWT application.
+  - [ ] Assess model size reduction and efficiency improvements.
 
 ## Analysis
 
@@ -31,4 +31,3 @@
 - [ ] Update the project README with findings and methodology.
 - [ ] Prepare visual documentation to share with peers and advisors for feedback.
 - [ ] Outline next steps based on project outcomes and feedback received.
-

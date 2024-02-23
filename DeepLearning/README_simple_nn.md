@@ -90,3 +90,63 @@ After the model is trained and evaluated, next we'll integrate the wavelet trans
 - **Inverse DWT:** applying the inverse wavelet transform (IDWT) to the modified coefficients to reconstruct teh weights in their original shape.
 - **Updated model Weights:** Replace the original weights in the model with the reconstructed weights from the IDWT process.
 - **Retain or Evaluate:** We may want to retain the models for evaluation as we progress.
+
+## Model Evaluation Metrics and Methods
+
+After training the neural network model, both with and without applying Discrete Wavelet Transform (DWT), it's crucial to evaluate and compare the model's performance based on several key metrics. Below are the metrics and methods used for this evaluation:
+
+## 1. Accuracy
+
+- **Purpose:** Measures the model's performance on the test dataset to assess how often it predicts the correct labels.
+- **Method:** Utilize the `evaluate` function provided by TensorFlow, which returns the model's accuracy on the provided test data.
+
+## 2. Model Size
+
+- **Purpose:** Determines the effect of DWT on reducing the model's storage size, an important factor for deployment in resource-constrained environments.
+- **Method:** Compare the file sizes of the model before and after applying DWT. This comparison is done by checking the file size of the saved model files.
+
+## 3. Inference Time
+
+- **Purpose:** Evaluates the time required for the model to make predictions, which is crucial for real-time applications.
+- **Method:** Measure the time it takes for the model to predict labels for the test dataset, before and after DWT application. Use Python's `time` module for this measurement.
+
+## 4. Sparsity
+
+- **Purpose:** Quantifies the level of weight sparsity achieved through DWT, indicating the effectiveness of the model compression.
+- **Method:** Calculate the ratio of zero-valued weights to the total number of weights in the model, before and after applying DWT.
+
+## Implementation Example
+
+Below is an example of how to implement these evaluations in Python:
+
+```python
+import time
+import os
+import numpy as np
+from tensorflow.keras.models import load_model
+
+# Load the model and test dataset
+model = load_model('path_to_model.h5')
+# Assume testX and testY are your test inputs and labels
+
+# Accuracy
+loss, accuracy = model.evaluate(testX, testY)
+print(f"Accuracy: {accuracy*100:.2f}%")
+
+# Model Size
+model_size = os.path.getsize('path_to_model.h5')
+print(f"Model Size: {model_size / 1024:.2f} KB")
+
+# Inference Time
+start_time = time.time()
+predictions = model.predict(testX)
+end_time = time.time()
+print(f"Inference Time: {end_time - start_time:.4f} seconds")
+
+# Sparsity
+weights = model.get_weights()
+zero_weights = np.sum([np.sum(w == 0) for w in weights])
+total_weights = np.sum([w.size for w in weights])
+sparsity = zero_weights / total_weights
+print(f"Sparsity: {sparsity*100:.2f}%")
+```
