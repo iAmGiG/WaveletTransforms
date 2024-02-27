@@ -33,6 +33,45 @@ After conducting the experiments, the results will be analyzed to understand:
 - The maximum compression achievable without substantial accuracy loss.
 - The scalability of this approach to more complex model architectures.
 
-## Conclusions and Future Work
+### Conclusions and Future Work
 
 The findings from this phase will provide insights into the practicality of model compression techniques and will serve as a foundation for further research into adaptive learning methods and their applications in real-world scenarios.
+
+#### Raw text for quant section
+
+"""
+model 1 and trained with mnist.
+model 2 but quantized with dwt.
+now what about the paramater size?
+what is the parma size?
+with the mnist,
+now have a threashold for the quantization, give this,
+lets quantize more on the param sizes,
+repeat thsi and increase the streangh of the reduciton
+then find the point where the therashold pushes
+
+where does the reduction threashold push the accuracy off the cliff.
+evaluate the size and contnue to explore the
+
+param size vs the performance,
+find any critical points of % reduction.
+
+what is the performance chagne after x% change?
+accuracy, ...ect.
+
+now we can measure the performnce of proof of concept,
+the take on the BERT, or ResNet-pretrained
+then do this on the text and image.
+
+how much size reduction can we do before we end up reducing to much to not enough?
+DWT matrix reduction, and reducing more, reconstruct back, and reconstruct the size.
+then performance test.
+
+relation between performnace and size reduction.
+then far away is the adaptive learning process.'
+put this in a chart, make the
+PURPOSE: and then we can improve the vision then reduce the size for mobile/edge devices.
+
+"""
+
+Remove the above - these were just perliminary notes.
