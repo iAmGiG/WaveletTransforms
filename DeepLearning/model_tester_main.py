@@ -61,7 +61,7 @@ what is the performance chagne after x% change?
 accuracy, ...ect.
 
 now we can measure the performnce of proof of concept, 
-the take on the BERT, ~~LLaMA~~, ResNet-pretrained
+the take on the BERT, or ResNet-pretrained
 then do this on the text and image.
 
 how much size reduction can we do before we end up reducing to much to not enough?

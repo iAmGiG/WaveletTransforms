@@ -8,10 +8,13 @@
 
 ## Experimentation
 
-- [ ] Train the selected model on the chosen dataset to establish a baseline performance metric.
-- [ ] Apply DWT to the model's weight matrices to increase sparsity.
-- [ ] Retrain the model post-DWT application and compare performance to the baseline.
-  - [ ] Evaluate classification accuracy before and after DWT application.
+- [x] Train the selected model on the chosen dataset to establish a baseline performance metric.
+  - Using the MNIST keras data set for the intial traning of the traditional NN and DWT models.
+- [x] Apply DWT to the model's weight matrices to increase sparsity.
+  - See DWT_model.py under the Deep learning folder.
+- [x] Retrain the model post-DWT application and compare performance to the baseline.
+  - See the model_tester_main.py
+  - [ ] Evaluate classification accuracy before and after DWT application, and save charts/images of results.
   - [ ] Assess model size reduction and efficiency improvements.
 
 ## Analysis
