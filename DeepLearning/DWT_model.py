@@ -1,10 +1,17 @@
 import numpy as np
+import os
+import datetime
 import pywt
 import tensorflow as tf
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import to_categorical
+
+save_dir = './DeepLearning/SavedDWTModels'
+os.makedirs(save_dir, exist_ok=True)
+now = datetime.datetime.now()
+date_time = now.strftime("%m-%d_%H-%M")
 
 def load_dataset():
     # Load dataset
@@ -49,9 +56,11 @@ def train_model_with_dwt():
             model.layers[i].set_weights([transformed_weights, biases])
     
     model.fit(trainX, trainY, epochs=10, batch_size=32, validation_data=(testX, testY))
-    model.save(f'./DeepLearning/SavedStandardModels/mnist_model_dwt.h5')
+    model.save(full_path)
     return model
 
 if __name__ == "__main__":
+    model_filename = f"mnist_model_dwt_{date_time}.h5"
+    full_path = os.path.join(save_dir, model_filename)
     model = train_model_with_dwt()
     model.summary()

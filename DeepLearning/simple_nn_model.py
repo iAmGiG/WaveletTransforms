@@ -40,7 +40,7 @@ def train_model():
     model = define_model()
     model.fit(trainX, trainY, epochs=10, batch_size=32,
               validation_data=(testX, testY))
-    model.save(model_filename)
+    model.save(full_path)
     return model
 
 
