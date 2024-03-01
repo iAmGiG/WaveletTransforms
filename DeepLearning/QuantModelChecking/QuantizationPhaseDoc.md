@@ -43,12 +43,12 @@ The findings from this phase will provide insights into the practicality of mode
 model 1 and trained with mnist.
 model 2 but quantized with dwt.
 now what about the paramater size?
-what is the parma size?
+what is the paramater size?
 with the mnist,
-now have a threashold for the quantization, give this,
-lets quantize more on the param sizes,
-repeat thsi and increase the streangh of the reduciton
-then find the point where the therashold pushes
+now have a threshold for the quantization, give this,
+let's quantize more on the param sizes,
+repeat this and increase the strength of the reduction
+then find the point where the threshold pushes
 
 where does the reduction threashold push the accuracy off the cliff.
 evaluate the size and contnue to explore the
