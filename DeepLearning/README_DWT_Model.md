@@ -1,11 +1,18 @@
 # DWT Model Training Instructions
 
 This document outlines how adjusting the batch size impacts the training of models utilizing Discrete Wavelet Transform (DWT) for weight compression and provides instructions for running the code with flags.
+Where you call the model.fit() method under the train with dwt model.
 
 ## Impact of Batch Size on DWT Models
 
+Adjusting the batch size affects the number of samples that are processed before the model's internal parameters are updated.
+
 - **Batch Size Increase**: Leads to faster training but might reduce the model's ability to generalize from DWT-compressed weights due to smoother convergence and higher memory usage.
+Raising Batch Size: Increasing the batch size will generally
+    lead to faster epoch times since there are fewer updates to be made.
 - **Batch Size Decrease**: Potentially improves the model's performance with DWT-compressed weights through better generalization, albeit with increased training time and lower memory demand.
+Lowering Batch Size: Decreasing the batch size often
+    leads to longer training times since the model's parameters are updated more frequently.
 
 ## Running the Code
 
