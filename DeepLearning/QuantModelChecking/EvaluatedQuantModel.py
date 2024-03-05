@@ -8,11 +8,15 @@ import re
 from datetime import datetime
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model_dir', './SavedTFliteModels',
+flags.DEFINE_string('model_dir', '../SavedTFliteModels',
                     'Directory where TFLite models are saved.')
 
 
 def find_most_recent_model(directory):
+    """
+    I want this method to also record the compression from the pattern as well. 
+    I might just do the sigular date, the current patter includes time.
+    """
     # Regex to extract datetime and possibly threshold from filenames
     pattern = re.compile(r'.*_(\d{8}T\d{6})_.*\.tflite$')
     models = [f for f in os.listdir(directory) if pattern.match(f)]
@@ -22,10 +26,9 @@ def find_most_recent_model(directory):
         pattern.match(x).group(1), '%Y%m%dT%H%M%S'))
     return os.path.join(directory, latest_model)
 
-# Load MNIST test dataset
-
 
 def load_test_dataset():
+    # Load MNIST test dataset
     (testX, testY), (_, _) = mnist.load_data()
     testX = testX.astype('float32') / 255.0
     # Make sure to match the model's input shape
@@ -33,10 +36,9 @@ def load_test_dataset():
     testY = tf.keras.utils.to_categorical(testY)
     return testX, testY
 
-# Load the TFLite model and allocate tensors
-
 
 def make_interpreter():
+    # Load the TFLite model and allocate tensors
     model_path = find_most_recent_model(FLAGS.model_dir)
     if model_path is None:
         raise FileNotFoundError(
@@ -45,17 +47,15 @@ def make_interpreter():
     interpreter.allocate_tensors()
     return interpreter
 
-# Get input and output tensors
-
 
 def get_i_o_details(interpreter):
+    # Get input and output tensors
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
 
-# Define a function to evaluate accuracy
-
 
 def evaluate_model(interpreter, testX, testY):
+    # Define a function to evaluate accuracy
     input_index = interpreter.get_input_details()[0]['index']
     output_index = interpreter.get_output_details()[0]['index']
 

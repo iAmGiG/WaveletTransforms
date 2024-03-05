@@ -78,7 +78,7 @@ pip install numpy matplotlib pywavelets scikit-learn pandas huggingface_hub
 
 ---------------
 
-## applying the DWT
+## Applying the DWT
 
 After the model is trained and evaluated, next we'll integrate the wavelet transform process into another solution.
 
