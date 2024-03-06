@@ -11,18 +11,24 @@ from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import to_categorical
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string('wavelet', 'haar', 'Wavelety type used for DWT')
+# flags.DEFINE_string('wavelet', 'haar', 'Wavelety type used for DWT')
+flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
+                  'Type of wavelet to use for DWT.')
 flags.DEFINE_string('save_dir', './SavedDWTModels',
                     'Dir to save trained models.')
 flags.DEFINE_integer('batch_size', 32, 'Batch size for training.')
 flags.DEFINE_integer('epochs', '10', 'Number of episodes/epochs')
+flags.DEFINE_integer('level', '1', 'Deeper decompreosition use a ')
+flags.DEFINE_float('threshold', '0.1', 'Threshold of the appllied dwt weight. 0 lower bounds, max "absolute avlue of coefficients"')
 
 
 def get_save_dir():
     current_time = datetime.datetime.now()
     # Construct directory path based on flags
-    save_dir = os.path.join(FLAGS.save_dir, current_time.strftime(
-        '%Y-%m-%d'), FLAGS.wavelet, str(FLAGS.batch_size), str(FLAGS.epochs))
+    threshold_str = str(FLAGS.threshold).replace('.', '_')
+    save_dir = os.path.join(FLAGS.save_dir, FLAGS.wavelet,
+                            str(FLAGS.batch_size), threshold_str,
+                            str(FLAGS.epochs), str(FLAGS.level))
     os.makedirs(save_dir, exist_ok=True)
     return save_dir
 
@@ -50,15 +56,17 @@ def define_model():
     return model
 
 
-def apply_dwt_and_reconstruct(weights, wavelet='haar'):
+def apply_dwt_and_reconstruct(weights, wavelet=FLAGS.wavelet, level=FLAGS.level, threshold_val=FLAGS.threshold):
     # Assuming weights are a 2D matrix
-    coeffs = pywt.dwt2(weights, wavelet)
-    cA, (cH, cV, cD) = coeffs
+    coeffs = pywt.dwt2(weights, wavelet, level=level)
+    # cA, (cH, cV, cD) = coeffs
+    coeffs_thresh = map(lambda arr: pywt.threshold(arr, threshold_val), coeffs)
     # Use only approximation coefficients for reconstruction
-    reconstructed = pywt.idwt2((cA, (None, None, None)), wavelet)
+    # reconstructed = pywt.idwt2((cA, (None, None, None)), wavelet)
+    weights_reconstructed = pywt.waverecn(coeffs_thresh, wavelet=wavelet)
     # Ensure the reconstructed shape matches the original shape
-    reconstructed = np.resize(reconstructed, weights.shape)
-    return reconstructed
+    # reconstructed = np.resize(reconstructed, weights.shape)
+    return weights_reconstructed
 
 
 def train_model_with_dwt(trainX, trainY, testX, testY):
@@ -86,7 +94,7 @@ def main(argv):
     model = train_model_with_dwt(trainX, trainY, testX, testY)
 
     # Save model with flags in the name for tracking
-    model_filename = f"mnist_model_dwt_{FLAGS.wavelet}_{datetime.datetime.now().strftime('%m-%d')}.h5"
+    model_filename = f"mnist_model_dwt_{FLAGS.wavelet}_{FLAGS.level}_{FLAGS.threshold}_{datetime.datetime.now().strftime('%m-%d')}.h5"
     full_path = os.path.join(get_save_dir(), model_filename)
     model.save(full_path)
     print(f"Model saved to: {full_path}")

@@ -29,23 +29,110 @@ Example command:
 python DWT_model.py --wavelet haar --batch_size 32 --epochs 10 --save_dir ./SavedModels
 ```
 
+## PyWavelet
+
+**Increasing the Level of Decomposition:**
+
+The level of decomposition refers to the number of times the wavelet decomposition is applied to the input signal. Each level of decomposition splits the signal into approximation and detail coefficients. The approximation coefficients represent the low-frequency components, while the detail coefficients represent the high-frequency components.
+
+By increasing the level of decomposition, you can extract more detailed frequency information from the signal. This can be beneficial for deep learning models, as it can help capture relevant features at different frequency scales.
+
+However, it's important to note that increasing the decomposition level too much can lead to an excessive number of coefficients, which may not be necessary or could even introduce noise. Finding the optimal level of decomposition is often a trade-off between capturing enough relevant information and avoiding excessive complexity.
+
+### Tools and adjusting the various levels
+
+1. **Adjusting the Decomposition Level:** Increasing the level of decomposition allows the DWT to analyze the signal at finer resolutions, potentially enhancing compression by focusing on significant coefficients.
+
+2. **Thresholding Wavelet Coefficients:** Implementing a more aggressive thresholding strategy, such as higher values for hard or soft thresholding, effectively zeros out smaller coefficients, increasing sparsity.
+Applying thresholding to the wavelet coefficients can help in several ways:
+
+    - **Denoising:** Thresholding can help remove or reduce the impact of noise present in the input signal, which can improve the quality of the features extracted for the deep learning model.
+    - **Sparsity:** Thresholding can introduce sparsity in the wavelet coefficients, meaning that many coefficients will be set to zero or close to zero. This sparsity can be beneficial for deep learning models, as it can reduce the dimensionality of the input data and potentially improve the model's performance and interpretability.
+    - **Feature Selection:** By applying thresholding, you are effectively selecting the most relevant wavelet coefficients, which can act as features for the deep learning model. This can help the model focus on the most important information and potentially improve its performance.
+
+3. **Selecting Wavelets with Higher Vanishing Moments:** Some wavelets, like higher-order Daubechies, provide better compression for specific types of data due to their ability to capture more information in fewer coefficients.
+
 ### Wavelet Types
 
 - **Haar:** Known for its simplicity and discontinuity, resembling a step function. Ideal for quick experiments and edge detection.
 
+```py
+#    --wavelet=harr
+```
+
 - **Daubechies:** Offers compactly supported orthonormal wavelets, suitable for practical discrete wavelet analysis. Identified by dbN, where N is the order.
 
-- **Biorthogonal:** Features linear phase properties, making it suitable for signal and image reconstruction tasks.
+```py
+#   --wavelet=db1
+#   --wavelet=db2
+```
+
+- **Biorthogonal:** Features linear phase properties, making it suitable for signal and image reconstruction tasks. (biorthogonal and reverse biorthogonal)
+
+```py
+#   --wavelet=bior1.3
+#   --wavelet=rbio1.3
+```
 
 - **Coiflets:** Designed by Daubechies, these wavelets have both wavelet and scaling functions with a certain number of vanishing moments, supporting signal smoothness.
 
+```py
+#   --wavelet=coif1
+```
+
 - **Symlets:** Nearly symmetrical, these are modified versions of Daubechies wavelets, aiming for less asymmetry.
+
+```py
+#   --wavelet=sym2
+```
 
 - **Morlet:** Known for not having a scaling function, explicit in form, and useful for frequency analysis.
 
+```py
+#   --wavelet=morl
+```
+
 - **Mexican Hat:** Also known as the Ricker wavelet, derived from the second derivative of the Gaussian function, useful for 2D and 3D data analysis.
 
+```py
+#   --wavelet=mexh
+```
+
 - **Meyer:** Defined in the frequency domain, suited for smooth transitions between pass and stop bands.
+
+```py
+#   --wavelet=dmey
+```
+
+- **Gaussian Wavelets (gaus):** Primarily used in the analysis of functions with Gaussian behavior or for Gaussian derivatives in signal processing.
+
+```py
+#   --wavelet=gaus
+```
+
+- **Complex Gaussian Wavelets (cgau):** Useful for capturing information in signals where both amplitude and phase are important, used in complex signal analysis.
+
+```py
+#   --wavelet=cgau
+```
+
+- **Shannon Wavelets (shan):** Based on the Shannon or sinc function, ideal for applications requiring exact reconstruction of signals with finite bandwidth.
+
+```py
+#   --wavelet=shan
+```
+
+- **Frequency B-Spline Wavelets (fbsp):** Combines B-spline functions and Fourier transforms, useful for signal smoothing and approximation tasks.
+
+```py
+#   --wavelet=fbsp
+```
+
+- **Complex Morlet Wavelets (cmor):** A complex wavelet, ideal for time-frequency analysis where frequency localization is critical.
+
+```py
+#   --wavelet=cmor
+```
 
 #### future consideration
 
