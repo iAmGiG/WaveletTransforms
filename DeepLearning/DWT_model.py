@@ -9,6 +9,8 @@ from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.callbacks import TensorBoard
+
 
 FLAGS = flags.FLAGS
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
@@ -101,7 +103,8 @@ def apply_dwt_and_reconstruct(weights, wavelet, level, threshold_val):
     for coeff in coeffs:
         if isinstance(coeff, dict):
             # Handle detail coefficients (dictionary)
-            thresholded_coeff = {key: pywt.threshold(coeff[key], threshold_val) for key in coeff.keys()}
+            thresholded_coeff = {key: pywt.threshold(
+                coeff[key], threshold_val) for key in coeff.keys()}
             coeffs_thresh.append(thresholded_coeff)
         else:
             # Handle approximation coefficients (single array)
@@ -109,11 +112,17 @@ def apply_dwt_and_reconstruct(weights, wavelet, level, threshold_val):
     weights_reconstructed = pywt.waverecn(coeffs_thresh, wavelet)
     return weights_reconstructed
 
+
 def train_model_with_dwt(trainX, trainY, testX, testY, wavelet, level, threshold_val):
     """
     Trains the defined model on the MNIST dataset with weights modified by DWT. 
     It applies the apply_dwt_and_reconstruct function to the model's dense layer weights before training.
     """
+    # model_save_dir = get_save_dir()  # Use your existing function to get the save directory
+    # tensorboard_log_dir = os.path.join(model_save_dir, "tensorboard_logs")
+    # tensorboard_callback = TensorBoard(
+    #     log_dir=tensorboard_log_dir, histogram_freq=1)
+
     model = define_model()
 
     # Apply DWT to model weights
@@ -124,9 +133,12 @@ def train_model_with_dwt(trainX, trainY, testX, testY, wavelet, level, threshold
                 weights, wavelet, level, threshold_val)
             model.layers[i].set_weights([transformed_weights, biases])
 
-    model.fit(trainX, trainY, epochs=FLAGS.epochs,
+    model.fit(trainX, trainY,
+              epochs=FLAGS.epochs,
               batch_size=FLAGS.batch_size,
-              validation_data=(testX, testY))
+              validation_data=(testX, testY)
+              )
+    # ,callbacks=[tensorboard_callback]
     return model
 
 
