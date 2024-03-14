@@ -1,22 +1,23 @@
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import load_model
+from absl import flags
+from absl import app
 import time
 import os
 import numpy as np
 import datetime
 import re
 import tensorflow as tf
-from absl import app
-from absl import flags
-from tensorflow.keras.models import load_model
-from tensorflow.keras.datasets import mnist
-from tensorflow.keras.utils import to_categorical
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # Define flags
 FLAGS = flags.FLAGS
 flags.DEFINE_string('model_dir', None,
-                    'Directory where models are saved')
+                    'Full path to the model file to be evaluated')
 flags.DEFINE_boolean('use_gpu', True, 'Whether to use GPU or not')
 
 # Mandatory flag definitions
@@ -24,7 +25,18 @@ flags.mark_flag_as_required('model_dir')
 
 
 def parse_model_filename(filename):
-    # Example pattern: haar_32_0.1_10_notquantized.h5
+    """
+    Parse the filename of a model to extract wavelet, level, threshold, and date information.
+
+    Parameters:
+    - filename (str): The filename to parse.
+
+    Returns:
+    - dict: A dictionary containing the parsed elements 'wavelet', 'level', 'threshold', 'date', and 'quantized'.
+
+    Raises:
+    - ValueError: If the filename does not match the expected pattern.
+    """
     patterns = [
         r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>[^_]+)_(?P<date>\d{2}-\d{2})\.h5$",
         r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)(?:_(?P<threshold>[^_]+))?_(?P<date>\d{2}-\d{2})\.h5$"
@@ -44,67 +56,48 @@ def parse_model_filename(filename):
     raise ValueError(f"Filename {filename} does not match expected patterns.")
 
 
-def load_and_evaluate_model(model_dir):
+def load_and_evaluate_model(model_file_path):
     """
-    Loads the MNIST dataset, prepares the data, and evaluates a pre-trained model's
-    performance on this dataset. It calculates and returns the model's accuracy,
-    size, inference time, and sparsity.
+    Load the MNIST dataset and a pre-trained model from a specified file path, evaluate the model's performance,
+    and calculate metrics such as accuracy, model size, inference time, and sparsity.
 
-    This function assumes the existence of global FLAGS defined via the absl library,
-    containing the necessary parameters to locate and load the model file.
+    Parameters:
+    - model_file_path (str): The full path to the .h5 model file to be evaluated.
 
     Returns:
-    - A tuple containing:
-        - A dictionary with keys 'accuracy', 'model_size', 'inference_time', and 'sparsity',
-          each mapped to their respective evaluation metrics.
-        - The path to the loaded model file.
+    - tuple: Containing:
+        - metrics (dict): A dictionary with evaluation metrics of the model.
+        - model_file_path (str): The full path to the evaluated model file.
+        - model_details (dict): Parsed details from the model filename.
+        - testY (np.array): The true labels from the MNIST test dataset.
+
+    If the model file cannot be found, returns None for all elements in the tuple.
     """
     # Load or prepare your test dataset
     (testX, testY), (_, _) = mnist.load_data()
     testX = testX / 255.0  # Normalize
-    testY = to_categorical(testY)
+    testY_categorical = to_categorical(testY)
     print(f"Loaded test dataset with {len(testX)} samples.")
 
-    # Model file name pattern based on flags
-    model_files = [f for f in os.listdir(model_dir) if f.endswith('.h5')]
-    if not model_files:
-        print(f"No .h5 model files found in directory: {model_dir}")
-        return None, None
+    # Verify the model file exists directly
+    if not os.path.isfile(model_file_path):
+        print(f"Model file not found: {model_file_path}")
+        return None, None, None, None
 
-    model_name = model_files[0]
-    model_path = os.path.join(model_dir, model_name)
-    model_details = parse_model_filename(model_name)
+    model_dir, model_filename = os.path.split(model_file_path)
+    model_details = parse_model_filename(model_filename)
 
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            # Set memory growth to true to avoid consuming all memory
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-
-            # Define the distributed strategy
-            strategy = tf.distribute.MirroredStrategy()
-            print(f"Number of devices: {strategy.num_replicas_in_sync}")
-
-            with strategy.scope():
-                # Load your model within the distributed strategy scope
-                model = load_model(model_path)
-
-        except RuntimeError as e:
-            print(e)
-    else:
-        # Load your model normally if GPUs are not available
-        model = load_model(model_path)
-
-    print(f"Model loaded from {model_path}. Evaluating...")
+    # Load the model directly from the provided path
+    print(f"Loading model from {model_dir}...")
+    model = load_model(model_file_path)
 
     # Evaluate accuracy
-    loss, accuracy = model.evaluate(testX, testY)
+    loss, accuracy = model.evaluate(testX, testY_categorical)
     print(f"Loss: {loss:.4f}")
     print(f"Accuracy: {accuracy*100:.2f}%")
 
     # Evaluate model size
-    model_size = os.path.getsize(model_path)
+    model_size = os.path.getsize(model_file_path)
     print(f"Model Size: {model_size / 1024:.2f} KB")
 
     # Evaluate inference time
@@ -130,31 +123,27 @@ def load_and_evaluate_model(model_dir):
         'sparsity': sparsity * 100,  # Convert to percentage
     }
 
-    return metrics, model_path, model_details
+    return metrics, model_file_path, model_details, testY
 
 
-def plot_metrics(metrics, model_path, model_details):
+def plot_metrics(metrics, model_path, model_details, testY):
     """
-    Generates and saves a plot of the model evaluation metrics as a PDF file.
-
-    This function creates a 2x2 subplot, with each quadrant representing one of
-    the following metrics: accuracy, model size, inference time, and sparsity. The plot
-    is then saved in the same directory as the model file.
+    Generates a set of plots for various model evaluation metrics and saves them as a PDF file.
 
     Parameters:
-    - metrics (dict): A dictionary containing the evaluation metrics of the model.
-                      The expected keys are 'accuracy', 'model_size', 'inference_time',
-                      and 'sparsity', each associated with their respective values.
-    - model_path (str): The file path of the model, used to determine the directory
-                        where the plot will be saved.
+    - metrics (dict): A dictionary containing the evaluation metrics.
+    - model_path (str): The file path of the model, to determine save location of the plot.
+    - model_details (dict): Details of the model for use in the plot title.
+    - testY (np.array): True labels for the test dataset, used for the confusion matrix.
 
-    The plot is saved as 'model_evaluation_metrics.pdf' in the directory of the model file.
+    The function will generate a subplot of 2x3, plotting accuracy, model size, inference time, sparsity, loss,
+    and a confusion matrix, and save it as 'model_evaluation_metrics.pdf' in the directory of the model file.
     """
     # Generate confusion matrix from predictions
     # Assuming testY is available in metrics
-    y_true = np.argmax(metrics['testY'], axis=1)
+    y_true = testY  # Directly use testY if it's already the true labels
+    # Convert predictions from one-hot encoding to labels
     y_pred = np.argmax(metrics['predictions'], axis=1)
-    conf_matrix = confusion_matrix(y_true, y_pred)
 
     # Adjust the figsize to fit your screen better
     fig, axs = plt.subplots(3, 2, figsize=(15, 20))
@@ -188,9 +177,10 @@ def plot_metrics(metrics, model_path, model_details):
     # This will turn off the 6th subplot (no plotting will happen here)
     axs[2, 1].axis('off')
 
-    # Plot the confusion matrix
-    axs[2, 1].set_title('Confusion Matrix')
+    # Adjust this part to plot the confusion matrix within the subplot framework
+    conf_matrix = confusion_matrix(y_true, y_pred)
     sns.heatmap(conf_matrix, annot=True, fmt='d', ax=axs[2, 1], cmap='Blues')
+    axs[2, 1].set_title('Confusion Matrix')
     axs[2, 1].set_xlabel('Predicted Labels')
     axs[2, 1].set_ylabel('True Labels')
 
@@ -204,6 +194,18 @@ def plot_metrics(metrics, model_path, model_details):
 
 
 def plot_confusion_matrix(y_true, y_pred, model_details, model_path):
+    """
+    Generates and saves a confusion matrix plot for the given predictions and true labels.
+
+    Parameters:
+    - y_true (np.array): The true labels.
+    - y_pred (np.array): The predicted labels by the model.
+    - model_details (dict): Details of the model for use in the plot title.
+    - model_path (str): The path to the model file, used to determine save location for the plot.
+
+    Saves the confusion matrix plot as a PDF file named 'confusion_matrix_<wavelet>_<date>.pdf'
+    in the same directory as the model file.
+    """
     conf_matrix = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues")
@@ -219,7 +221,19 @@ def plot_confusion_matrix(y_true, y_pred, model_details, model_path):
 
 
 def plot_accuracy_over_samples(testY, predictions, model_details, model_path):
-    test_labels = np.argmax(testY, axis=1)
+    """
+    Generates and saves a scatter plot showing prediction accuracy over samples.
+
+    Parameters:
+    - testY (np.array): The true labels for the test dataset.
+    - predictions (np.array): The predicted probabilities by the model for each class.
+    - model_details (dict): Details of the model for use in the plot title.
+    - model_path (str): The path to the model file, used to determine save location for the plot.
+
+    Saves the plot as a PDF file named 'accuracy_over_samples_<wavelet>_<quantized>.pdf'
+    in the same directory as the model file.
+    """
+    test_labels = testY
     predicted_labels = np.argmax(predictions, axis=1)
     correct_predictions = test_labels == predicted_labels
 
@@ -252,19 +266,37 @@ def find_model_file(directory, pattern):
 
 
 def main(argv):
+    """
+    Main function that configures GPU settings, loads and evaluates a model,
+    and generates evaluation plots.
+
+    Uses command-line flags to control behavior such as the path to the model file
+    and whether to use a GPU for evaluation.
+
+    Exits with a status code indicating success or failure of the operations.
+    """
     # Assuming load_and_evaluate_model returns a dictionary of metrics
     if FLAGS.use_gpu:
-        # or another device index if you have multiple GPUs
-        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                print(f"Using GPU: {gpus}")
+            except RuntimeError as e:
+                print(f"Error configuring GPU: {e}")
     else:
-        # forces TensorFlow to use CPU
+        print("Using CPU for evaluation.")
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     # Ensure this function also returns the model_path
-    metrics, model_path, model_details = load_and_evaluate_model(
+    # Assuming this now directly contains the model file path
+    metrics, model_path, model_details, testY = load_and_evaluate_model(
         FLAGS.model_dir)
     if metrics:
-        plot_metrics(metrics, model_path, model_details)
+        plot_metrics(metrics, model_path, model_details, testY)
+        plot_accuracy_over_samples(
+            testY, metrics['predictions'], model_details, model_path)
 
 
 if __name__ == '__main__':
