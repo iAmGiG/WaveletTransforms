@@ -9,7 +9,6 @@ from absl import app
 import time
 import os
 import numpy as np
-import datetime
 import re
 import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'

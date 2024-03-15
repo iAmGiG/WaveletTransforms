@@ -1,8 +1,23 @@
-numpy
-pywt
-scikit-learn
-matplotlib # For plotting, if needed for visualization
-pandas # If you need to handle data in tabular form
-jupyter # If you're using Jupyter notebooks for development
-tensorflow # Or pytorch, depending on which one you'll use for neural networks
-huggingface_hub # If you plan to use models from Hugging Face
+# Core scientific stack
+numpy==1.22.4
+pywt==1.4.1
+scikit-learn==0.22.1
+matplotlib==3.5.3
+pandas==1.2.3
+
+# Development tools
+jupyter==[specific version if required]
+
+# Google's Abseil Python Common Libraries
+absl-py==2.1.0
+
+# Deep learning frameworks and tools
+tensorflow==2.10.0
+keras==2.10.0
+huggingface_hub==0.20.3
+
+# Other required packages, specify versions as necessary
+# aiohttp, etc.
+
+# Additional packages from your conda list output
+# Add other dependencies you need that are specific to your project

@@ -4,19 +4,19 @@ import tensorflow as tf
 import re
 from absl import app
 from absl import flags
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # Define flags
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean(
     'use_gpu', True, 'Enable GPU support for TensorFlow operations')
-flags.DEFINE_string('original_model_path', None,
+flags.DEFINE_string('model_dir', None,
                     'Full path to the original DWT TensorFlow model.')
-flags.DEFINE_string('quantized_model_dir', './DeepLearning/QuantizedModels',
+flags.DEFINE_string('quantized_model_dir', './DeepLearning/SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
 flags.DEFINE_string('version', 'v1', 'Version number of the model')
-
-flags.mark_flag_as_required('original_model_path')
-
+flags.DEFINE_string("quantization_type", 'DEFAULT', 'Quantization strategy to use.')
+flags.mark_flag_as_required('model_path')
 
 def setup_gpu_configuration():
     """
@@ -72,7 +72,7 @@ def generate_model_filename(details, version):
     return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{version}_{date}.tflite"
 
 
-def convert_model_to_tflite(model_path, output_file):
+def convert_model_to_tflite(model_path, output_file, quantization_type):
     """
     Converts a TensorFlow model to a TensorFlow Lite model with post-training quantization.
 
@@ -84,6 +84,10 @@ def convert_model_to_tflite(model_path, output_file):
     Returns:
     - None. The function saves the TFLite model to the specified path.
     """
+    if quantization_type == 'float16':
+        converter.target_spec.supported_types = [tf.float16]
+    elif quantization_type == 'int8':
+    
     model = tf.keras.models.load_model(model_path)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
