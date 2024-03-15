@@ -15,8 +15,10 @@ flags.DEFINE_string('model_dir', None,
 flags.DEFINE_string('quantized_model_dir', './DeepLearning/SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
 flags.DEFINE_string('version', 'v1', 'Version number of the model')
-flags.DEFINE_string("quantization_type", 'DEFAULT', 'Quantization strategy to use.')
+flags.DEFINE_string("quantization_type", 'DEFAULT',
+                    'Quantization strategy to use.')
 flags.mark_flag_as_required('model_path')
+
 
 def setup_gpu_configuration():
     """
@@ -72,32 +74,55 @@ def generate_model_filename(details, version):
     return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{version}_{date}.tflite"
 
 
-def convert_model_to_tflite(model_path, output_file, quantization_type):
+def representative_dataset_generator():
+    # Placeholder: Replace this loop with actual data loading and preprocessing suitable for your model.
+    for _ in range(100):
+        # Assuming the model expects input shape of [1, 224, 224, 3]. Adjust accordingly.
+        yield [tf.random.uniform([1, 224, 224, 3], dtype=tf.float32)]
+
+
+def convert_model_to_tflite(model_path, output_file, quantization_type, representative_dataset_func=None):
     """
-    Converts a TensorFlow model to a TensorFlow Lite model with post-training quantization.
+    Converts a TensorFlow model to a TensorFlow Lite model with specified post-training quantization.
 
     Args:
-    - model_path: str. Path to the TensorFlow .h5 model file to convert.
-    - output_file: str. Path where the TFLite model will be saved.
-    - optimizations: list. List of optimizations to apply during conversion.
+    - model_path (str): Path to the TensorFlow .h5 model file to convert.
+    - output_file (str): Path where the TFLite model will be saved.
+    - quantization_type (str): Type of quantization to apply. Options are 'float16', 'int8', or 'none'.
+    - representative_dataset_func (function, optional): A function that generates representative dataset samples
+      for 'int8' quantization. Required if quantization_type is 'int8'.
 
     Returns:
-    - None. The function saves the TFLite model to the specified path.
+    - None: The function saves the TFLite model to the specified path.
     """
-    if quantization_type == 'float16':
-        converter.target_spec.supported_types = [tf.float16]
-    elif quantization_type == 'int8':
-    
     model = tf.keras.models.load_model(model_path)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+
+    if quantization_type == 'float16':
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.target_spec.supported_types = [tf.float16]
+    elif quantization_type == 'int8':
+        if representative_dataset_func is None:
+            raise ValueError(
+                "representative_dataset_func must be provided for 'int8' quantization.")
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.representative_dataset = representative_dataset_generator
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+        converter.inference_input_type = tf.int8
+        converter.inference_output_type = tf.int8
+    elif quantization_type == 'none':
+        pass
+    else:
+        raise ValueError(
+            "Unsupported quantization type. Choose 'float16', 'int8', or 'none'.")
+
     tflite_quant_model = converter.convert()
+
     with open(output_file, 'wb') as f:
         f.write(tflite_quant_model)
 
 
 def main(argv):
-
     setup_gpu_configuration()
     # Full path for the original model and the quantized model
     model_filename = os.path.basename(FLAGS.original_model_path)
@@ -107,7 +132,8 @@ def main(argv):
     quantized_model_path = os.path.join(
         FLAGS.quantized_model_dir, quantized_model_filename)
 
-    convert_model_to_tflite(FLAGS.original_model_path, quantized_model_path)
+    convert_model_to_tflite(FLAGS.original_model_path, quantized_model_path,
+                            FLAGS.quantization_type, representative_dataset_func=representative_data_gen)
 
     print(f"Quantized model saved as {quantized_model_path}")
 

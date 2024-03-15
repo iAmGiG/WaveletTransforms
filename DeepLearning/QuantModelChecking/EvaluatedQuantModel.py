@@ -12,6 +12,22 @@ flags.DEFINE_string('model_dir', '../SavedTFliteModels',
                     'Directory where TFLite models are saved.')
 
 
+def setup_gpu_configuration():
+    """
+    Configures TensorFlow to use GPU if available and enabled through flags.
+    """
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus and FLAGS.use_gpu:
+        try:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            print("Using GPU for TensorFlow operations")
+        except RuntimeError as e:
+            print(e)
+    else:
+        print("GPU support not enabled or GPUs not available, using CPU instead")
+
+
 def find_most_recent_model(directory):
     """
     I want this method to also record the compression from the pattern as well. 
@@ -92,6 +108,7 @@ def main(argv):
     if len(argv) > 1:
         raise app.UsageError('Too many command-line arguments.')
     # Evaluate the model
+    setup_gpu_configuration()
     testX, testY = load_test_dataset()
     interpreter = make_interpreter()
     get_i_o_details(interpreter=interpreter)
