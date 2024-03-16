@@ -105,9 +105,6 @@ def evaluate_model(interpreter, testX, testY):
 
 
 def main(argv):
-    if len(argv) > 1:
-        raise app.UsageError('Too many command-line arguments.')
-    # Evaluate the model
     setup_gpu_configuration()
     testX, testY = load_test_dataset()
     interpreter = make_interpreter()

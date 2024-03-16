@@ -10,11 +10,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean(
     'use_gpu', True, 'Enable GPU support for TensorFlow operations')
-flags.DEFINE_string('model_dir', None,
+flags.DEFINE_string('model_path', None,
                     'Full path to the original DWT TensorFlow model.')
-flags.DEFINE_string('quantized_model_dir', './DeepLearning/SavedTFliteModels',
+flags.DEFINE_string('quantized_model_dir', '../DeepLearning/SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
-flags.DEFINE_string('version', 'v1', 'Version number of the model')
 flags.DEFINE_string("quantization_type", 'DEFAULT',
                     'Quantization strategy to use.')
 flags.mark_flag_as_required('model_path')
@@ -25,6 +24,8 @@ def setup_gpu_configuration():
     Configures TensorFlow to use GPU if available and enabled through flags.
     """
     gpus = tf.config.experimental.list_physical_devices('GPU')
+    print("Num GPUs Available: ", len(
+        tf.config.experimental.list_physical_devices('GPU')))
     if gpus and FLAGS.use_gpu:
         try:
             for gpu in gpus:
@@ -44,18 +45,41 @@ def parse_model_details_from_filename(model_filename):
     - model_filename: str. Filename of the original TensorFlow model.
 
     Returns:
-    - A dictionary containing the parsed details.
+    - A dictionary containing the parsed details if a match is found.
+    - Raises a ValueError if no pattern matches.
     """
-    pattern = r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>\d+)_(?P<date>\d{2}-\d{2})"
-    match = re.search(pattern, model_filename)
+    # # List of patterns to try
+    # patterns = [
+    #     # Example pattern without threshold
+    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_\d+-\d+.h5",
+    #     # Pattern with threshold
+    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>\d+)_\d{2}-\d{2}.h5",
+    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<date>\d{2}-\d{2}).h5$"
+    # ]
+
+    # for pattern in patterns:
+    #     match = re.search(pattern, model_filename)
+    #     if match:
+    #         details = match.groupdict()
+    #         # Ensure 'threshold' key exists, even if it wasn't matched
+    #         # Use a default value or adjust as needed
+    #         details.setdefault('threshold', 'default')
+    #         return details
+    pattern = r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>\d+_\d+)_(?P<date>\d{2}-\d{2}).h5$"
+    match = re.match(pattern, model_filename)
     if match:
-        return match.groupdict()
+        return {
+            'wavelet': match.group('wavelet'),
+            'level': match.group('level'),
+            'threshold': match.group('threshold').replace('_', '.'),
+            'date': match.group('date')
+        }
     else:
         raise ValueError(
-            "The model filename does not match the expected pattern.")
+            "The model filename does not match any expected pattern.")
 
 
-def generate_model_filename(details, version):
+def generate_model_filename(details):
     """
     Generates a descriptive file name for the quantized model.
 
@@ -63,15 +87,16 @@ def generate_model_filename(details, version):
     - wavelet: str. Wavelet type used in the model.
     - level: int. Level of wavelet transformation used in the model.
     - threshold: float. Threshold value used in the model.
-    - version: str. Version number of the model.
     - date: str. Date of model quantization.
 
     Returns:
     - str. A string representing the file name for the quantized model.
     """
-    date = datetime.now().strftime('%Y-%m-%d')
-    threshold_str = str(details['threshold']).replace('.', '')
-    return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{version}_{date}.tflite"
+    # date = datetime.datetime.now().strftime('%Y-%m-%d')
+    # return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{date}.tflite"
+    date_now = datetime.datetime.now().strftime('%Y-%m-%d')
+    threshold_str = str(details['threshold']).replace('.', '_')
+    return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{date_now}.tflite"
 
 
 def representative_dataset_generator():
@@ -81,14 +106,26 @@ def representative_dataset_generator():
         yield [tf.random.uniform([1, 224, 224, 3], dtype=tf.float32)]
 
 
-def convert_model_to_tflite(model_path, output_file, quantization_type, representative_dataset_func=None):
+def ensure_directory_exists(directory):
+    """
+    Ensures that the specified directory exists. If the directory does not exist, it is created.
+
+    Args:
+    - directory_path (str): The path to the directory to ensure exists.
+    """
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+
+def convert_model_to_tflite(model_path, output_file, quantization_type='default', representative_dataset_func=None):
     """
     Converts a TensorFlow model to a TensorFlow Lite model with specified post-training quantization.
 
     Args:
     - model_path (str): Path to the TensorFlow .h5 model file to convert.
     - output_file (str): Path where the TFLite model will be saved.
-    - quantization_type (str): Type of quantization to apply. Options are 'float16', 'int8', or 'none'.
+    - quantization_type (str): Type of quantization to apply. Options are 'float16', 'int8', 'none', or 'default'.
+      'default' will apply no quantization and is equivalent to 'none'.
     - representative_dataset_func (function, optional): A function that generates representative dataset samples
       for 'int8' quantization. Required if quantization_type is 'int8'.
 
@@ -107,9 +144,12 @@ def convert_model_to_tflite(model_path, output_file, quantization_type, represen
                 "representative_dataset_func must be provided for 'int8' quantization.")
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
         converter.representative_dataset = representative_dataset_generator
-        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+        converter.target_spec.supported_ops = [
+            tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
         converter.inference_input_type = tf.int8
         converter.inference_output_type = tf.int8
+    elif quantization_type == 'default':
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
     elif quantization_type == 'none':
         pass
     else:
@@ -118,22 +158,30 @@ def convert_model_to_tflite(model_path, output_file, quantization_type, represen
 
     tflite_quant_model = converter.convert()
 
+    output_directory = os.path.dirname(output_file)
+    ensure_directory_exists(output_directory)
     with open(output_file, 'wb') as f:
         f.write(tflite_quant_model)
 
 
 def main(argv):
-    setup_gpu_configuration()
+    # setup_gpu_configuration() gpus not supported for the TF lite conversion
+
     # Full path for the original model and the quantized model
-    model_filename = os.path.basename(FLAGS.original_model_path)
+    model_path = FLAGS.model_path
+    quantization_type = FLAGS.quantization_type
+    print(f'Model path: {model_path}')
+    model_filename = os.path.basename(model_path)
     details = parse_model_details_from_filename(model_filename)
 
-    quantized_model_filename = generate_model_filename(details, FLAGS.version)
+    quantized_model_filename = generate_model_filename(details)
     quantized_model_path = os.path.join(
         FLAGS.quantized_model_dir, quantized_model_filename)
 
-    convert_model_to_tflite(FLAGS.original_model_path, quantized_model_path,
-                            FLAGS.quantization_type, representative_dataset_func=representative_data_gen)
+    # convert_model_to_tflite(model_path, quantized_model_path,
+    #                         FLAGS.quantization_type, representative_dataset_func=representative_dataset_generator)
+    convert_model_to_tflite(model_path,
+                            quantized_model_path, quantization_type)
 
     print(f"Quantized model saved as {quantized_model_path}")
 
