@@ -7,7 +7,7 @@ jobs:
     name: Lint Python Code
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -15,7 +15,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: wavelet_env
-          environment-file: ${{ matrix.os == 'windows-latest' && 'environment.yml' }}
+          environment-file: ${{ matrix.os == 'windows-latest' && 'environment_windows.yml' || matrix.os == 'ubuntu-latest' && 'environment_linux.yml' || matrix.os == 'macos-latest' && 'environment_mac.yml' }}
           python-version: "3.8.18"
           auto-activate-base: false
       - name: Cache Conda
