@@ -1,0 +1,16 @@
+name: wavelet_tf_env_Q2
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9  # Choose based on TensorFlow's compatibility
+  - tensorflow=2.6  # Or the latest compatible version you prefer
+  - pywavelets  # Will install the latest version compatible with other packages
+  - numpy
+  - scipy
+  - matplotlib  # Often used alongside PyWavelets for visualization
+  - h5py  # Needed for saving/loading models in HDF5 format
+  - absl-py  # Used by TensorFlow
+  - pip
+  - pip:
+      - tensorflow-datasets  # Optional, for TensorFlow datasets
