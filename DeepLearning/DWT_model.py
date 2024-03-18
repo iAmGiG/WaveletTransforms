@@ -22,7 +22,27 @@ flags.DEFINE_integer('epochs', '10', 'Number of episodes/epochs')
 flags.DEFINE_integer('level', '1', 'Deeper decompreosition use a ')
 flags.DEFINE_float('threshold', '0.1',
                    'Threshold of the appllied dwt weight. 0 lower bounds, max "absolute avlue of coefficients"')
+flags.DEFINE_boolean('use_gpu', True, 'Whether to use GPU or not')
 
+
+def setup_gpu_configuration():
+    """
+    Configures TensorFlow to use GPU if available and enabled through flags.
+    """
+    if FLAGS.use_gpu:
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                print("Using GPU for TensorFlow operations.")
+            except RuntimeError as e:
+                print(f"Error setting up GPU: {e}")
+        else:
+            print("No GPUs found. Using CPU instead.")
+    else:
+        print("GPU support is disabled. Using CPU instead.")
+        tf.config.set_visible_devices([], 'GPU')
 
 def get_save_dir():
     """
@@ -152,7 +172,7 @@ def main(argv):
     #     raise app.UsageError('Expected no command-line arguments, '
     #                         'got: {}'.format(argv))
     app.parse_flags_with_usage(argv)
-
+    setup_gpu_configuration()
     wavelet = FLAGS.wavelet
     level = FLAGS.level
     threshold_val = FLAGS.threshold
