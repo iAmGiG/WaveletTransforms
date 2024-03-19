@@ -16,11 +16,11 @@ FLAGS = flags.FLAGS
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
                   'Type of wavelet to use for DWT.')
 flags.DEFINE_string('save_dir', './SavedDWTModels',
-                    'Dir to save trained models.')
+                    'Dir to save trained models. NOTE: if you want to save to the default, you will need to be in the DeepLearning folder')
 flags.DEFINE_integer('batch_size', 32, 'Batch size for training.')
 flags.DEFINE_integer('epochs', '10', 'Number of episodes/epochs')
 flags.DEFINE_integer('level', '1', 'Deeper decompreosition use a ')
-flags.DEFINE_float('threshold', '0.1',
+flags.DEFINE_float('threshold', '0.05',
                    'Threshold of the appllied dwt weight. 0 lower bounds, max "absolute avlue of coefficients"')
 flags.DEFINE_boolean('use_gpu', True, 'Whether to use GPU or not')
 
@@ -43,6 +43,7 @@ def setup_gpu_configuration():
     else:
         print("GPU support is disabled. Using CPU instead.")
         tf.config.set_visible_devices([], 'GPU')
+
 
 def get_save_dir():
     """

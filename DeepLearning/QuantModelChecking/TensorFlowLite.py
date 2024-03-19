@@ -148,7 +148,7 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
             tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
         converter.inference_input_type = tf.int8
         converter.inference_output_type = tf.int8
-    elif quantization_type == 'default':
+    elif quantization_type == 'default' or 'DEFAULT':
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
     elif quantization_type == 'none':
         pass
