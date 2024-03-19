@@ -62,7 +62,7 @@ flags.DEFINE_integer('batch_size', 32, 'Batch size for training.')
 flags.DEFINE_integer(
     'epochs', '10', 'Number of epochs or iterations over the entire training dataset.')
 flags.DEFINE_integer('level', '1', 'Decomposition level for the DWT.')
-flags.DEFINE_float('threshold', '0.05',
+flags.DEFINE_float('threshold', '0.1',
                    'Threshold for thresholding the wavelet coefficients obtained from the DWT.')
 flags.DEFINE_boolean(
     'use_gpu', True, 'Whether to use GPU or not for TensorFlow operations.')
