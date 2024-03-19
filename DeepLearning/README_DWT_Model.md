@@ -1,27 +1,38 @@
 # DWT Model Training Instructions
 
-This document outlines how adjusting the batch size impacts the training of models utilizing Discrete Wavelet Transform (DWT) for weight compression and provides instructions for running the code with flags.
-Where you call the model.fit() method under the train with dwt model.
+This document provides a comprehensive guide to training models utilizing Discrete Wavelet Transform (DWT) for weight compression, including details on how various flags affect training.
 
 ## Impact of Batch Size on DWT Models
 
-Adjusting the batch size affects the number of samples that are processed before the model's internal parameters are updated.
+Training parameters play a crucial role in the performance and efficiency of DWT models. Here's how:
 
-- **Batch Size Increase**: Leads to faster training but might reduce the model's ability to generalize from DWT-compressed weights due to smoother convergence and higher memory usage.
-Raising Batch Size: Increasing the batch size will generally
-    lead to faster epoch times since there are fewer updates to be made.
-- **Batch Size Decrease**: Potentially improves the model's performance with DWT-compressed weights through better generalization, albeit with increased training time and lower memory demand.
-Lowering Batch Size: Decreasing the batch size often
-    leads to longer training times since the model's parameters are updated more frequently.
+### Batch Size
 
-## Running the Code
+- **Increase**: Accelerates training but may hinder the model's ability to generalize. It's recommended for faster convergence with sufficient computational resources.
+- **Decrease**: Enhances model generalization at the cost of longer training times. Ideal for achieving higher accuracy with constrained resources.
 
-To train the model with customized settings, use the following command-line flags:
+### Epochs
 
-- `--wavelet`: Specifies the type of wavelet for DWT (default: 'haar').
-- `--batch_size`: Determines the batch size for training (e.g., 32).
-- `--epochs`: Sets the number of training epochs (e.g., 10).
-- `--save_dir`: Directory to save trained models (default: './DeepLearning/SavedDWTModels').
+- Specifies the total number of passes through the entire training dataset. More epochs can lead to better model accuracy but risk overfitting.
+
+### Wavelet and Level
+
+- Adjusting the wavelet type and decomposition level affects the model's ability to capture frequency and location information from the data. Different wavelets and levels can provide varying levels of compression and feature extraction capabilities.
+
+### Threshold
+
+- The threshold value plays a pivotal role in determining the sparsity of the model weights post-DWT. A higher threshold promotes model sparsity, potentially leading to better compression and faster inference times.
+
+## Running the Code with Flags
+
+Customize your training session with the following command-line flags:
+
+- `--wavelet`: Type of wavelet (e.g., 'haar', 'db1'). Influences the wavelet transformation applied to model weights.
+- `--batch_size`: Number of samples per gradient update. Impacts training speed and model accuracy.
+- `--epochs`: Number of epochs to train the model. More epochs can lead to better accuracy.
+- `--level`: Decomposition level for DWT. Higher levels allow for deeper frequency analysis.
+- `--threshold`: Threshold value for compressing the DWT coefficients. Affects weight sparsity.
+- `--save_dir`: Path to save the trained models. Organized by training parameters for easy retrieval.
 
 Example command:
 
@@ -134,13 +145,13 @@ Applying thresholding to the wavelet coefficients can help in several ways:
 #   --wavelet=cmor
 ```
 
-#### future consideration
+#### Advanced Configuration and Future Considerations
 
-- **Hyperparameter Tuning:** While you have provided flags for adjusting the batch size, epochs, and wavelet type, you could consider implementing a more systematic approach to hyperparameter tuning. This could involve techniques like grid search, random search, or Bayesian optimization to find the optimal combination of hyperparameters for your model.
+- **Systematic Hyperparameter Tuning:** While you have provided flags for adjusting the batch size, epochs, and wavelet type, you could consider implementing a more systematic approach to hyperparameter tuning. This could involve techniques like grid search, random search, or Bayesian optimization to find the optimal combination of hyperparameters for your model.
 
 - **Cross-Validation:** To ensure the robustness and generalization capability of your model, you could implement cross-validation techniques, such as k-fold cross-validation. This would help you evaluate your model's performance on multiple splits of the data and provide a more reliable estimate of its generalization ability.
 
-- **Early Stopping:** Implementing an early stopping mechanism during training could help prevent overfitting and potentially improve the model's performance. You could monitor the validation loss or accuracy and stop training when these metrics plateau or start to degrade.
+- **Early Stopping and Learning Rate Scheduling:** Implementing an early stopping mechanism during training could help prevent overfitting and potentially improve the model's performance. You could monitor the validation loss or accuracy and stop training when these metrics plateau or start to degrade.
 
 - **Learning Rate Scheduling:** Experimenting with different learning rate schedules, such as step decay, exponential decay, or cyclical learning rates, could lead to faster convergence and potentially better performance.
 
