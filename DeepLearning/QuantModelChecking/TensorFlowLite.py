@@ -99,6 +99,54 @@ def ensure_directory_exists(directory):
         os.makedirs(directory)
 
 
+def get_save_dir():
+    """
+    Constructs and returns a directory path for saving models. The directory path reflects the model's configuration,
+    incorporating the wavelet type, batch size, threshold value, epochs, and decomposition level into the directory structure.
+    This organized approach facilitates easy navigation and identification of models based on their configuration.
+
+    To ensure compatibility with filesystem conventions, especially on Windows, this function replaces '.' in the threshold
+    value with '_', as filenames and directories on Windows cannot contain certain characters like the dot character in 
+    contexts other than separating the filename from the extension.
+
+    The constructed directory path follows the format:
+    `save_dir/wavelet/batch_size/threshold_value/epochs/level`
+    where:
+    - `save_dir` is the base directory for saving models, specified by the `--save_dir` flag.
+    - `wavelet` specifies the wavelet type used in the DWT process.
+    - `batch_size` reflects the number of samples processed before the model is updated.
+    - `threshold_value` is the threshold applied in the DWT process, with dots replaced by underscores for compatibility.
+    - `epochs` represents the number of complete passes through the training dataset.
+    - `level` indicates the decomposition level used in the DWT process.
+
+    If the constructed directory does not exist, it is created with `os.makedirs(save_dir, exist_ok=True)`, ensuring
+    that the model can be saved without manual directory creation.
+
+    Returns:
+        str: The constructed directory path where the model should be saved.
+
+    Example:
+        If the flags are set as follows:
+        --wavelet 'haar', --batch_size 32, --threshold 0.1, --epochs 10, --level 1
+        The returned save directory will be something like:
+        'models/haar/32/0_1/10/1'
+
+    Note:
+        The use of `os.makedirs(..., exist_ok=True)` ensures that attempting to create an already existing directory
+        won't raise an error, facilitating reusability of the function across different runs with the same or different
+        configurations.
+    """
+    # Convert threshold to string and replace dots for filesystem compatibility
+    threshold_str = str(FLAGS.threshold).replace('.', '_')
+    # Construct the directory path based on flags
+    save_dir = os.path.join(FLAGS.save_dir, FLAGS.wavelet,
+                            str(FLAGS.batch_size), threshold_str,
+                            str(FLAGS.epochs), str(FLAGS.level))
+    # Create the directory if it doesn't exist
+    os.makedirs(save_dir, exist_ok=True)
+    return save_dir
+
+
 def convert_model_to_tflite(model_path, output_file, quantization_type='default', representative_dataset_func=None):
     """
     Converts a TensorFlow model to a TensorFlow Lite model with specified post-training quantization.
@@ -139,11 +187,11 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
             "Unsupported quantization type. Choose 'float16', 'int8', or 'none'.")
 
     tflite_quant_model = converter.convert()
-    output_directory = os.path.dirname(output_file)
-    ensure_directory_exists(output_directory)
-    with open(output_file, 'wb') as f:
+    output_directory = os.path.join(get_save_dir(), output_file)
+    # ensure_directory_exists(output_directory)
+    with open(output_directory, 'wb') as f:
         f.write(tflite_quant_model)
-    print(f"Model saved to: {output_file}")
+    print(f"Model saved to: {output_directory}")
 
 
 def get_model_size(file_path):
@@ -159,6 +207,7 @@ def get_model_size(file_path):
     size_bytes = os.path.getsize(file_path)
     return size_bytes / 1024  # Convert bytes to kilobytes
 
+
 def log_details(directory, filename, details):
     """
     Logs the specified details into a text file within the given directory.
@@ -173,7 +222,9 @@ def log_details(directory, filename, details):
 
     log_filepath = os.path.join(directory, filename)
     with open(log_filepath, "a") as log_file:  # Open in append mode
-        log_file.write(details + "\n")  # Add a newline at the end of the details
+        # Add a newline at the end of the details
+        log_file.write(details + "\n")
+
 
 def get_quantized_model_save_dir(original_model_path):
     """
@@ -181,10 +232,12 @@ def get_quantized_model_save_dir(original_model_path):
     """
     details = parse_model_details_from_filename(original_model_path)
     threshold_str = details['threshold'].replace('_', '.')
-    save_dir = os.path.join(FLAGS.quantized_model_dir, details['wavelet'], details['level'], threshold_str, details['date'], "quantized")
+    save_dir = os.path.join(FLAGS.quantized_model_dir,
+                            details['wavelet'], details['level'], threshold_str, details['date'], "quantized")
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     return save_dir
+
 
 def main(argv):
     # setup_gpu_configuration() gpus not supported for the TF lite conversion
@@ -202,14 +255,14 @@ def main(argv):
 
     # convert_model_to_tflite(model_path, quantized_model_path,
     #                         FLAGS.quantization_type, representative_dataset_func=representative_dataset_generator)
-    
+
     # Measure original model size
     original_model_size_kb = get_model_size(model_path)
     print(f"Original model size: {original_model_size_kb:.2f} KB")
-    
+
     convert_model_to_tflite(model_path,
                             quantized_model_path, quantization_type)
-    
+
     # Measure quantized model size
     quantized_model_size_kb = get_model_size(quantized_model_path)
     print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
@@ -217,8 +270,8 @@ def main(argv):
     # Display size reduction
     size_reduction_kb = original_model_size_kb - quantized_model_size_kb
     size_reduction_percent = (size_reduction_kb / original_model_size_kb) * 100
-    print(f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)")
-
+    log_details = f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)"
+    print(log_details)
     print(f"Quantized model saved as {quantized_model_path}")
 
 

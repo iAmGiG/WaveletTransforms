@@ -344,6 +344,7 @@ def train_model_with_dwt(trainX, trainY, testX, testY, wavelet, level, threshold
 
 
 def main(argv):
+    #region 
     """
     Executes the main workflow of the DWT-based MNIST digit classification model training. 
     This includes setting up GPU configuration (if enabled), loading the MNIST dataset, 
