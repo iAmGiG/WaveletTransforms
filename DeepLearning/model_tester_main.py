@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import load_model
-from absl import flags
-from absl import app
+from absl import app, flags
 import time
 import os
 import numpy as np

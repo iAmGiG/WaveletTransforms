@@ -3,8 +3,7 @@ import os
 import datetime
 import pywt
 import tensorflow as tf
-from absl import app
-from absl import flags
+from absl import app, flags
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Flatten
@@ -57,12 +56,12 @@ FLAGS = flags.FLAGS
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
                   'Type of wavelet to use for DWT.')
 flags.DEFINE_string('save_dir', './SavedDWTModels',
-                    'Dir to save trained models.')
+                    'Dir location to save trained models.')
 flags.DEFINE_integer('batch_size', 32, 'Batch size for training.')
 flags.DEFINE_integer(
     'epochs', '10', 'Number of epochs or iterations over the entire training dataset.')
 flags.DEFINE_integer('level', '1', 'Decomposition level for the DWT.')
-flags.DEFINE_float('threshold', '0.1',
+flags.DEFINE_float('threshold', '0.85',
                    'Threshold for thresholding the wavelet coefficients obtained from the DWT.')
 flags.DEFINE_boolean(
     'use_gpu', True, 'Whether to use GPU or not for TensorFlow operations.')

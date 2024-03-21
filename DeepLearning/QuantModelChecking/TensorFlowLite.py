@@ -2,17 +2,16 @@ import datetime
 import os
 import tensorflow as tf
 import re
-from absl import app
-from absl import flags
+from absl import app, flags
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # Define flags
 FLAGS = flags.FLAGS
 flags.DEFINE_boolean(
-    'use_gpu', True, 'Enable GPU support for TensorFlow operations')
+    'use_gpu', False, 'Enable GPU support for TensorFlow operations')
 flags.DEFINE_string('model_path', None,
                     'Full path to the original DWT TensorFlow model.')
-flags.DEFINE_string('quantized_model_dir', '../DeepLearning/SavedTFliteModels',
+flags.DEFINE_string('quantized_model_dir', './SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
 flags.DEFINE_string("quantization_type", 'DEFAULT',
                     'Quantization strategy to use.')
@@ -103,7 +102,7 @@ def representative_dataset_generator():
     # Placeholder: Replace this loop with actual data loading and preprocessing suitable for your model.
     for _ in range(100):
         # Assuming the model expects input shape of [1, 224, 224, 3]. Adjust accordingly.
-        yield [tf.random.uniform([1, 224, 224, 3], dtype=tf.float32)]
+        yield [tf.random.uniform([1, 28, 28, 3], dtype=tf.float32)]
 
 
 def ensure_directory_exists(directory):
@@ -135,19 +134,19 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
     model = tf.keras.models.load_model(model_path)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
-    if quantization_type == 'float16':
+    if quantization_type == ['float16', 'int8']:
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
-        converter.target_spec.supported_types = [tf.float16]
-    elif quantization_type == 'int8':
-        if representative_dataset_func is None:
-            raise ValueError(
-                "representative_dataset_func must be provided for 'int8' quantization.")
-        converter.optimizations = [tf.lite.Optimize.DEFAULT]
-        converter.representative_dataset = representative_dataset_generator
-        converter.target_spec.supported_ops = [
-            tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-        converter.inference_input_type = tf.int8
-        converter.inference_output_type = tf.int8
+        if quantization_type == 'float16':
+            converter.target_spec.supported_types = [tf.float16]
+        elif quantization_type == 'int8':
+            if representative_dataset_func is None:
+                raise ValueError(
+                    "representative_dataset_func must be provided for 'int8' quantization.")
+            converter.representative_dataset = representative_dataset_generator
+            converter.target_spec.supported_ops = [
+                tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+            converter.inference_input_type = tf.int8
+            converter.inference_output_type = tf.int8
     elif quantization_type == 'default' or 'DEFAULT':
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
     elif quantization_type == 'none':
@@ -157,11 +156,25 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
             "Unsupported quantization type. Choose 'float16', 'int8', or 'none'.")
 
     tflite_quant_model = converter.convert()
-
     output_directory = os.path.dirname(output_file)
     ensure_directory_exists(output_directory)
     with open(output_file, 'wb') as f:
         f.write(tflite_quant_model)
+    print(f"Model saved to: {output_file}")
+
+
+def get_model_size(file_path):
+    """
+    Returns the size of the model at the given file path in kilobytes (KB).
+
+    Args:
+        file_path (str): The path to the model file.
+
+    Returns:
+        float: The size of the model in kilobytes (KB).
+    """
+    size_bytes = os.path.getsize(file_path)
+    return size_bytes / 1024  # Convert bytes to kilobytes
 
 
 def main(argv):
@@ -169,7 +182,7 @@ def main(argv):
 
     # Full path for the original model and the quantized model
     model_path = FLAGS.model_path
-    quantization_type = FLAGS.quantization_type
+    quantization_type = FLAGS.quantization_type.lower()
     print(f'Model path: {model_path}')
     model_filename = os.path.basename(model_path)
     details = parse_model_details_from_filename(model_filename)
@@ -180,8 +193,22 @@ def main(argv):
 
     # convert_model_to_tflite(model_path, quantized_model_path,
     #                         FLAGS.quantization_type, representative_dataset_func=representative_dataset_generator)
+    
+    # Measure original model size
+    original_model_size_kb = get_model_size(model_path)
+    print(f"Original model size: {original_model_size_kb:.2f} KB")
+    
     convert_model_to_tflite(model_path,
                             quantized_model_path, quantization_type)
+    
+    # Measure quantized model size
+    quantized_model_size_kb = get_model_size(quantized_model_path)
+    print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
+
+    # Display size reduction
+    size_reduction_kb = original_model_size_kb - quantized_model_size_kb
+    size_reduction_percent = (size_reduction_kb / original_model_size_kb) * 100
+    print(f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)")
 
     print(f"Quantized model saved as {quantized_model_path}")
 
