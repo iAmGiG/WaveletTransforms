@@ -59,7 +59,7 @@ flags.DEFINE_string('save_dir', './SavedDWTModels',
                     'Dir location to save trained models.')
 flags.DEFINE_integer('batch_size', 32, 'Batch size for training.')
 flags.DEFINE_integer(
-    'epochs', '10', 'Number of epochs or iterations over the entire training dataset.')
+    'epochs', '1', 'Number of epochs or iterations over the entire training dataset.')
 flags.DEFINE_integer('level', '1', 'Decomposition level for the DWT.')
 flags.DEFINE_float('threshold', '0.85',
                    'Threshold for thresholding the wavelet coefficients obtained from the DWT.')
@@ -401,7 +401,7 @@ def main(argv):
         trainX, trainY, testX, testY, wavelet=wavelet, level=level, threshold_val=threshold_val)
 
     # Construct a filename for the model incorporating training parameters
-    threshold_str = str(FLAGS.threshold).replace('.', '_')
+    threshold_str = str(threshold_val).replace('.', '_')
     model_filename = f"mnist_model_dwt_{FLAGS.wavelet}_{FLAGS.level}_{threshold_str}_{datetime.datetime.now().strftime('%m-%d')}.h5"
 
     # Save the trained model

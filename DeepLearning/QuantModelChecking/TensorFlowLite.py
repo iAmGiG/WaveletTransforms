@@ -47,23 +47,6 @@ def parse_model_details_from_filename(model_filename):
     - A dictionary containing the parsed details if a match is found.
     - Raises a ValueError if no pattern matches.
     """
-    # # List of patterns to try
-    # patterns = [
-    #     # Example pattern without threshold
-    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_\d+-\d+.h5",
-    #     # Pattern with threshold
-    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>\d+)_\d{2}-\d{2}.h5",
-    #     r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<date>\d{2}-\d{2}).h5$"
-    # ]
-
-    # for pattern in patterns:
-    #     match = re.search(pattern, model_filename)
-    #     if match:
-    #         details = match.groupdict()
-    #         # Ensure 'threshold' key exists, even if it wasn't matched
-    #         # Use a default value or adjust as needed
-    #         details.setdefault('threshold', 'default')
-    #         return details
     pattern = r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>\d+_\d+)_(?P<date>\d{2}-\d{2}).h5$"
     match = re.match(pattern, model_filename)
     if match:
@@ -176,6 +159,32 @@ def get_model_size(file_path):
     size_bytes = os.path.getsize(file_path)
     return size_bytes / 1024  # Convert bytes to kilobytes
 
+def log_details(directory, filename, details):
+    """
+    Logs the specified details into a text file within the given directory.
+
+    Args:
+        directory (str): The directory where the log file will be saved.
+        filename (str): The name of the log file.
+        details (str): The details to log.
+    """
+    # Ensure the directory exists
+    ensure_directory_exists(directory)
+
+    log_filepath = os.path.join(directory, filename)
+    with open(log_filepath, "a") as log_file:  # Open in append mode
+        log_file.write(details + "\n")  # Add a newline at the end of the details
+
+def get_quantized_model_save_dir(original_model_path):
+    """
+    Generates the save directory for the quantized model based on the original model's path.
+    """
+    details = parse_model_details_from_filename(original_model_path)
+    threshold_str = details['threshold'].replace('_', '.')
+    save_dir = os.path.join(FLAGS.quantized_model_dir, details['wavelet'], details['level'], threshold_str, details['date'], "quantized")
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    return save_dir
 
 def main(argv):
     # setup_gpu_configuration() gpus not supported for the TF lite conversion
