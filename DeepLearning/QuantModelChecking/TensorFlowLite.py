@@ -2,6 +2,7 @@ import datetime
 import os
 import tensorflow as tf
 import re
+import h5py
 import numpy as np
 from absl import app, flags
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
@@ -89,27 +90,64 @@ def representative_dataset_generator():
         # Assuming the model expects input shape of [1, 224, 224, 3]. Adjust accordingly.
         yield [tf.random.uniform([1, 28, 28, 3], dtype=tf.float32)]
 
-def random_quantize_model(weights, quant_level, percentage):
+
+def random_quantize_model(model_path, save_path):
+    """
+    Applies randomized quantization to the model weights and saves the modified model.
+
+    Args:
+    - model_path: Path to the original .h5 model file.
+    - save_path: Path where the quantized model will be saved.
+    """
+    with h5py.File(model_path, 'r+') as h5_file:
+        for layer, g in h5_file.items():
+            # Assuming weights are stored in a group named 'weights'
+            if 'weights' in g:
+                weights = g['weights'][:]
+                quantized_weights = random_quantize_weights(weights)
+                g['weights'][...] = quantized_weights
+    # Save the modified model; this could involve simply copying the modified h5 file to the new location
+    # or using h5py or TensorFlow's save functionality if the model needs to be reconstructed.
+
+
+def convert_and_quantize_model(model_path, method='default', **kwargs):
+    """
+    Converts and quantizes a model based on the specified method.
+
+    Args:
+    - model_path: Path to the model to convert and quantize.
+    - method: The quantization method ('default' or 'random').
+    - kwargs: Additional arguments specific to the quantization method.
+    """
+    if method == 'random':
+        # Example: 'save_path' should be provided in kwargs for the random quantization method
+        random_quantize_model(model_path, kwargs.get(
+            'save_path', './quantized_model.h5'))
+    else:
+        # Call existing function for the default quantization method
+        pass  # Use the existing convert_model_to_tflite here
+
+
+def random_quantize_weights(weights, quant_level='binary', percentage=50):
     """
     Randomly quantizes a percentage of weights to a specified level.
 
     Args:
-    - weights: The weights of a neural network layer.
-    - quant_level: The level of quantization (e.g., number of bits).
+    - weights: Numpy array of weights.
+    - quant_level: The level of quantization ('binary' or 'ternary' in this example).
     - percentage: The percentage of weights to quantize.
     Returns:
-    - Quantized weights.
+    - Quantized weights as a numpy array.
     """
     mask = np.random.rand(*weights.shape) < (percentage / 100.0)
     quantized_weights = np.copy(weights)
     if quant_level == 'binary':
-        # Example: Binarize the selected weights
         quantized_weights[mask] = np.sign(quantized_weights[mask])
     elif quant_level == 'ternary':
-        # Example: Ternarize the selected weights
-        quantized_weights[mask] = np.sign(quantized_weights[mask]) * np.ceil(np.abs(quantized_weights[mask]) / 2)
-    # Add more quantization levels as needed
+        quantized_weights[mask] = np.sign(
+            quantized_weights[mask]) * np.ceil(np.abs(quantized_weights[mask]) / 2)
     return quantized_weights
+
 
 def ensure_directory_exists(directory):
     """
