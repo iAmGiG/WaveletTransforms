@@ -2,6 +2,7 @@ import datetime
 import os
 import tensorflow as tf
 import re
+import numpy as np
 from absl import app, flags
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
@@ -15,6 +16,7 @@ flags.DEFINE_string('quantized_model_dir', './SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
 flags.DEFINE_string("quantization_type", 'DEFAULT',
                     'Quantization strategy to use.')
+flags.DEFINE_bool('random_quantize', False, 'Enable random quantization')
 flags.mark_flag_as_required('model_path')
 
 
@@ -87,6 +89,27 @@ def representative_dataset_generator():
         # Assuming the model expects input shape of [1, 224, 224, 3]. Adjust accordingly.
         yield [tf.random.uniform([1, 28, 28, 3], dtype=tf.float32)]
 
+def random_quantize_model(weights, quant_level, percentage):
+    """
+    Randomly quantizes a percentage of weights to a specified level.
+
+    Args:
+    - weights: The weights of a neural network layer.
+    - quant_level: The level of quantization (e.g., number of bits).
+    - percentage: The percentage of weights to quantize.
+    Returns:
+    - Quantized weights.
+    """
+    mask = np.random.rand(*weights.shape) < (percentage / 100.0)
+    quantized_weights = np.copy(weights)
+    if quant_level == 'binary':
+        # Example: Binarize the selected weights
+        quantized_weights[mask] = np.sign(quantized_weights[mask])
+    elif quant_level == 'ternary':
+        # Example: Ternarize the selected weights
+        quantized_weights[mask] = np.sign(quantized_weights[mask]) * np.ceil(np.abs(quantized_weights[mask]) / 2)
+    # Add more quantization levels as needed
+    return quantized_weights
 
 def ensure_directory_exists(directory):
     """
