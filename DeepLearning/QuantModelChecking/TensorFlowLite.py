@@ -1,42 +1,26 @@
 import datetime
 import os
 import tensorflow as tf
+from tensorflow.keras.models import load_model
 import re
-import h5py
 import numpy as np
 from absl import app, flags
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_boolean(
-    'use_gpu', False, 'Enable GPU support for TensorFlow operations')
 flags.DEFINE_string('model_path', None,
                     'Full path to the original DWT TensorFlow model.')
 flags.DEFINE_string('quantized_model_dir', './SavedTFliteModels',
                     'Directory where the quantized TFLite models are saved')
 flags.DEFINE_string("quantization_type", 'DEFAULT',
                     'Quantization strategy to use.')
-flags.DEFINE_bool('random_quantize', False, 'Enable random quantization')
+flags.DEFINE_string('quant_level', 'binary',
+                    'Level of quantization (binary, ternary, etc.)')
+flags.DEFINE_float('quant_percentage', 50, 'Percentage of weights to quantize')
+flags.DEFINE_boolean('random_quantize', False,
+                     'Enable random weight quantization')
 flags.mark_flag_as_required('model_path')
-
-
-def setup_gpu_configuration():
-    """
-    Configures TensorFlow to use GPU if available and enabled through flags.
-    """
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    print("Num GPUs Available: ", len(
-        tf.config.experimental.list_physical_devices('GPU')))
-    if gpus and FLAGS.use_gpu:
-        try:
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            print("Using GPU for TensorFlow operations")
-        except RuntimeError as e:
-            print(e)
-    else:
-        print("GPU support not enabled or GPUs not available, using CPU instead")
 
 
 def parse_model_details_from_filename(model_filename):
@@ -82,32 +66,6 @@ def generate_model_filename(details):
     date_now = datetime.datetime.now().strftime('%Y-%m-%d')
     threshold_str = str(details['threshold']).replace('.', '_')
     return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{date_now}.tflite"
-
-
-def representative_dataset_generator():
-    # Placeholder: Replace this loop with actual data loading and preprocessing suitable for your model.
-    for _ in range(100):
-        # Assuming the model expects input shape of [1, 224, 224, 3]. Adjust accordingly.
-        yield [tf.random.uniform([1, 28, 28, 3], dtype=tf.float32)]
-
-
-def random_quantize_model(model_path, save_path):
-    """
-    Applies randomized quantization to the model weights and saves the modified model.
-
-    Args:
-    - model_path: Path to the original .h5 model file.
-    - save_path: Path where the quantized model will be saved.
-    """
-    with h5py.File(model_path, 'r+') as h5_file:
-        for layer, g in h5_file.items():
-            # Assuming weights are stored in a group named 'weights'
-            if 'weights' in g:
-                weights = g['weights'][:]
-                quantized_weights = random_quantize_weights(weights)
-                g['weights'][...] = quantized_weights
-    # Save the modified model; this could involve simply copying the modified h5 file to the new location
-    # or using h5py or TensorFlow's save functionality if the model needs to be reconstructed.
 
 
 def convert_and_quantize_model(model_path, method='default', **kwargs):
@@ -215,10 +173,8 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
     Args:
     - model_path (str): Path to the TensorFlow .h5 model file to convert.
     - output_file (str): Path where the TFLite model will be saved.
-    - quantization_type (str): Type of quantization to apply. Options are 'float16', 'int8', 'none', or 'default'.
+    - quantization_type (str): Type of quantization to apply. Options are 'float16', 'none', or 'default'.
       'default' will apply no quantization and is equivalent to 'none'.
-    - representative_dataset_func (function, optional): A function that generates representative dataset samples
-      for 'int8' quantization. Required if quantization_type is 'int8'.
 
     Returns:
     - None: The function saves the TFLite model to the specified path.
@@ -226,26 +182,15 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
     model = tf.keras.models.load_model(model_path)
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
 
-    if quantization_type == ['float16', 'int8']:
-        converter.optimizations = [tf.lite.Optimize.DEFAULT]
-        if quantization_type == 'float16':
-            converter.target_spec.supported_types = [tf.float16]
-        elif quantization_type == 'int8':
-            if representative_dataset_func is None:
-                raise ValueError(
-                    "representative_dataset_func must be provided for 'int8' quantization.")
-            converter.representative_dataset = representative_dataset_generator
-            converter.target_spec.supported_ops = [
-                tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-            converter.inference_input_type = tf.int8
-            converter.inference_output_type = tf.int8
+    if quantization_type == 'float16':
+        converter.target_spec.supported_types = [tf.float16]
     elif quantization_type == 'default' or 'DEFAULT':
         converter.optimizations = [tf.lite.Optimize.DEFAULT]
     elif quantization_type == 'none':
         pass
     else:
         raise ValueError(
-            "Unsupported quantization type. Choose 'float16', 'int8', or 'none'.")
+            "Unsupported quantization type. Choose 'float16', or 'none'.")
 
     tflite_quant_model = converter.convert()
     output_directory = os.path.join(get_save_dir(), output_file)
@@ -253,6 +198,16 @@ def convert_model_to_tflite(model_path, output_file, quantization_type='default'
     with open(output_directory, 'wb') as f:
         f.write(tflite_quant_model)
     print(f"Model saved to: {output_directory}")
+
+
+def apply_random_quantization(model, quant_level='binary', percentage=50):
+    for layer in model.layers:
+        if hasattr(layer, 'weights') and layer.trainable:
+            weights = layer.get_weights()
+            new_weights = [random_quantize_weights(
+                w, quant_level, percentage) for w in weights]
+            layer.set_weights(new_weights)
+    return model
 
 
 def get_model_size(file_path):
@@ -300,40 +255,62 @@ def get_quantized_model_save_dir(original_model_path):
     return save_dir
 
 
-def main(argv):
-    # setup_gpu_configuration() gpus not supported for the TF lite conversion
-
-    # Full path for the original model and the quantized model
+def main():
     model_path = FLAGS.model_path
-    quantization_type = FLAGS.quantization_type.lower()
-    print(f'Model path: {model_path}')
-    model_filename = os.path.basename(model_path)
-    details = parse_model_details_from_filename(model_filename)
 
-    quantized_model_filename = generate_model_filename(details)
-    quantized_model_path = os.path.join(
-        FLAGS.quantized_model_dir, quantized_model_filename)
+    if FLAGS.random_quantize:
+        # Load the model for random quantization
+        model = load_model(model_path)
 
-    # convert_model_to_tflite(model_path, quantized_model_path,
-    #                         FLAGS.quantization_type, representative_dataset_func=representative_dataset_generator)
+        # Apply random quantization
+        model = apply_random_quantization(
+            model, FLAGS.quant_level, FLAGS.quant_percentage)
 
-    # Measure original model size
-    original_model_size_kb = get_model_size(model_path)
-    print(f"Original model size: {original_model_size_kb:.2f} KB")
+        # Save the quantized model
+        model.save(FLAGS.quantized_model_path)
+        print(
+            f"Randomly quantized model saved to: {FLAGS.quantized_model_path}")
 
-    convert_model_to_tflite(model_path,
-                            quantized_model_path, quantization_type)
+        # Measure quantized model size
+        quantized_model_size_kb = get_model_size(FLAGS.quantized_model_path)
+        print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
 
-    # Measure quantized model size
-    quantized_model_size_kb = get_model_size(quantized_model_path)
-    print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
+        # Optionally, compare to the original model size and display size reduction
+        original_model_size_kb = get_model_size(model_path)
+        size_reduction_kb = original_model_size_kb - quantized_model_size_kb
+        size_reduction_percent = (
+            size_reduction_kb / original_model_size_kb) * 100
+        print(
+            f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)")
+    else:
+        quantization_type = FLAGS.quantization_type.lower()
+        print(f'Model path: {model_path}')
+        model_filename = os.path.basename(model_path)
+        details = parse_model_details_from_filename(model_filename)
 
-    # Display size reduction
-    size_reduction_kb = original_model_size_kb - quantized_model_size_kb
-    size_reduction_percent = (size_reduction_kb / original_model_size_kb) * 100
-    log_details = f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)"
-    print(log_details)
-    print(f"Quantized model saved as {quantized_model_path}")
+        quantized_model_filename = generate_model_filename(details)
+        quantized_model_path = os.path.join(
+            FLAGS.quantized_model_dir, quantized_model_filename)
+
+        # Perform the original quantization process (e.g., TFLite conversion)
+        convert_model_to_tflite(
+            model_path, quantized_model_path, quantization_type)
+
+        # Measure original model size
+        original_model_size_kb = get_model_size(model_path)
+        print(f"Original model size: {original_model_size_kb:.2f} KB")
+
+        # Measure quantized model size
+        quantized_model_size_kb = get_model_size(quantized_model_path)
+        print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
+
+        # Display size reduction
+        size_reduction_kb = original_model_size_kb - quantized_model_size_kb
+        size_reduction_percent = (
+            size_reduction_kb / original_model_size_kb) * 100
+        log_details = f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)"
+        print(log_details)
+        print(f"Quantized model saved as {quantized_model_path}")
 
 
 if __name__ == '__main__':
