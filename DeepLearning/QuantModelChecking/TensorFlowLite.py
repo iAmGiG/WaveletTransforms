@@ -48,24 +48,24 @@ def parse_model_details_from_filename(model_filename):
             "The model filename does not match any expected pattern.")
 
 
-def generate_model_filename(details):
+def generate_model_filename(details, is_random_quantized=False):
     """
-    Generates a descriptive file name for the quantized model.
+    Generates a descriptive file name for the quantized model, indicating whether
+    the model was quantized using a random method or TensorFlow Lite's process.
 
     Args:
-    - wavelet: str. Wavelet type used in the model.
-    - level: int. Level of wavelet transformation used in the model.
-    - threshold: float. Threshold value used in the model.
-    - date: str. Date of model quantization.
+    - details: A dictionary containing details about the model, including wavelet type,
+               level, threshold, and date.
+    - is_random_quantized (bool): Indicates if the model was quantized using the
+                                  random quantization method.
 
     Returns:
-    - str. A string representing the file name for the quantized model.
+    - str: A string representing the file name for the quantized model.
     """
-    # date = datetime.datetime.now().strftime('%Y-%m-%d')
-    # return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{date}.tflite"
     date_now = datetime.datetime.now().strftime('%Y-%m-%d')
-    threshold_str = str(details['threshold']).replace('.', '_')
-    return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{date_now}.tflite"
+    threshold_str = details['threshold'].replace('.', '_')
+    quant_method = "random" if is_random_quantized else "tflite"
+    return f"mnist_model_dwt_{details['wavelet']}_lvl{details['level']}_thresh{threshold_str}_quantized_{quant_method}_{date_now}.h5"
 
 
 def convert_and_quantize_model(model_path, method='default', **kwargs):
@@ -255,62 +255,37 @@ def get_quantized_model_save_dir(original_model_path):
     return save_dir
 
 
-def main():
+def main(argv):
     model_path = FLAGS.model_path
+    original_filename = os.path.basename(model_path)
+    quantization_type = 'random' if FLAGS.random_quantize else 'tflite'
+
+    # Generate the new filename based on the quantization type
+    quantized_model_filename = generate_quantized_model_filename(
+        original_filename, quantization_type)
+    quantized_model_path = os.path.join(
+        FLAGS.quantized_model_dir, quantized_model_filename)
 
     if FLAGS.random_quantize:
-        # Load the model for random quantization
         model = load_model(model_path)
-
-        # Apply random quantization
         model = apply_random_quantization(
             model, FLAGS.quant_level, FLAGS.quant_percentage)
-
-        # Save the quantized model
-        model.save(FLAGS.quantized_model_path)
-        print(
-            f"Randomly quantized model saved to: {FLAGS.quantized_model_path}")
-
-        # Measure quantized model size
-        quantized_model_size_kb = get_model_size(FLAGS.quantized_model_path)
-        print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
-
-        # Optionally, compare to the original model size and display size reduction
-        original_model_size_kb = get_model_size(model_path)
-        size_reduction_kb = original_model_size_kb - quantized_model_size_kb
-        size_reduction_percent = (
-            size_reduction_kb / original_model_size_kb) * 100
-        print(
-            f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)")
+        model.save(quantized_model_path)
     else:
-        quantization_type = FLAGS.quantization_type.lower()
-        print(f'Model path: {model_path}')
-        model_filename = os.path.basename(model_path)
-        details = parse_model_details_from_filename(model_filename)
-
-        quantized_model_filename = generate_model_filename(details)
-        quantized_model_path = os.path.join(
-            FLAGS.quantized_model_dir, quantized_model_filename)
-
-        # Perform the original quantization process (e.g., TFLite conversion)
+        # Assuming convert_model_to_tflite is updated to accept quantized_model_path
         convert_model_to_tflite(
-            model_path, quantized_model_path, quantization_type)
+            model_path, quantized_model_path, FLAGS.quantization_type)
 
-        # Measure original model size
-        original_model_size_kb = get_model_size(model_path)
-        print(f"Original model size: {original_model_size_kb:.2f} KB")
-
-        # Measure quantized model size
-        quantized_model_size_kb = get_model_size(quantized_model_path)
-        print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
-
-        # Display size reduction
-        size_reduction_kb = original_model_size_kb - quantized_model_size_kb
-        size_reduction_percent = (
-            size_reduction_kb / original_model_size_kb) * 100
-        log_details = f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)"
-        print(log_details)
-        print(f"Quantized model saved as {quantized_model_path}")
+    # Log model size before and after quantization
+    original_model_size_kb = get_model_size(model_path)
+    quantized_model_size_kb = get_model_size(quantized_model_path)
+    print(f"Original model size: {original_model_size_kb:.2f} KB")
+    print(f"Quantized model size: {quantized_model_size_kb:.2f} KB")
+    size_reduction_kb = original_model_size_kb - quantized_model_size_kb
+    size_reduction_percent = (size_reduction_kb / original_model_size_kb) * 100
+    print(
+        f"Size reduction: {size_reduction_kb:.2f} KB ({size_reduction_percent:.2f}%)")
+    print(f"Quantized model saved to: {quantized_model_path}")
 
 
 if __name__ == '__main__':
