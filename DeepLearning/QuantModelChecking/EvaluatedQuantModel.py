@@ -101,12 +101,13 @@ def evaluate_model(interpreter, testX, testY):
         digit = np.argmax(output_data[0])
         prediction_digits.append(digit)
 
-    precision = precision_score(true_labels, prediction_digits, average='macro')
+    precision = precision_score(
+        true_labels, prediction_digits, average='macro')
     recall = recall_score(true_labels, prediction_digits, average='macro')
     f1 = f1_score(true_labels, prediction_digits, average='macro')
     # Generate confusion matrix
     cm = confusion_matrix(true_labels, prediction_digits)
-    
+
     accurate_count = sum(1 for i in range(len(prediction_digits))
                          if prediction_digits[i] == np.argmax(testY[i]))
     accuracy = accurate_count / len(prediction_digits)
@@ -131,14 +132,17 @@ def save_evaluation_plot(metrics, plot_filepath):
         metrics (dict): A dictionary containing the evaluation metrics.
         plot_filepath (str): The file path where the plot will be saved.
     """
-    scalar_metrics = {k: v for k, v in metrics.items() if not isinstance(v, np.ndarray)}
+    scalar_metrics = {k: v for k,
+                      v in metrics.items() if not isinstance(v, np.ndarray)}
     confusion_matrix = metrics.get('confusion_matrix', None)
 
-    num_plots = len(scalar_metrics) + (1 if confusion_matrix is not None else 0)
+    num_plots = len(scalar_metrics) + \
+        (1 if confusion_matrix is not None else 0)
     num_rows = int(np.ceil(num_plots / 2))
 
-    fig, axs = plt.subplots(num_rows, 2, figsize=(15, num_rows * 5), constrained_layout=True)
-    
+    fig, axs = plt.subplots(num_rows, 2, figsize=(
+        15, num_rows * 5), constrained_layout=True)
+
     # Make axs a 2D array for easy indexing
     if num_rows == 1:
         axs = np.array([axs])
@@ -151,8 +155,10 @@ def save_evaluation_plot(metrics, plot_filepath):
 
     # Plot confusion matrix if it exists
     if confusion_matrix is not None:
-        ax_cm = axs[-1, -1] if num_plots % 2 == 0 else axs[-1, 1]  # Place it at the end
-        sns.heatmap(confusion_matrix, annot=True, fmt="d", cmap="Blues", ax=ax_cm)
+        # Place it at the end
+        ax_cm = axs[-1, -1] if num_plots % 2 == 0 else axs[-1, 1]
+        sns.heatmap(confusion_matrix, annot=True,
+                    fmt="d", cmap="Blues", ax=ax_cm)
         ax_cm.set_title('Confusion Matrix')
         ax_cm.set_xlabel('Predicted Labels')
         ax_cm.set_ylabel('True Labels')
@@ -165,6 +171,7 @@ def save_evaluation_plot(metrics, plot_filepath):
     plt.suptitle('Model Evaluation Metrics')
     plt.savefig(plot_filepath)
     plt.close()
+
 
 def main(argv):
     setup_gpu_configuration()
