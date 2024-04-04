@@ -1,0 +1,10 @@
+[
+    {
+        "guid": "bf42449c87cd47b9a24ce9809411b147",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.85
+        }
+    }
+]

@@ -4,6 +4,8 @@ import numpy as np
 import os
 import datetime
 import pywt
+import uuid
+import json
 
 # Define Flags.
 FLAGS = flags.FLAGS
@@ -58,6 +60,11 @@ flags.DEFINE_boolean('random_quantize', False,
                      'Enable random weight quantization')
 flags.mark_flag_as_required('model_path')
 
+def generate_guid():
+    """
+    make a new GUID
+    """
+    return uuid.uuid4().hex
 
 # Load model
 def get_model(model_path):
@@ -66,24 +73,37 @@ def get_model(model_path):
 
     """
     # Load the pre-trained model
-    model = tf.keras.models.load_model('model_path')
+    model = tf.keras.models.load_model(model_path)
     return model
 
 # Save model
 
 
-def save_model(model, model_path):
-    """    
-    we'll have to adjust for the unique pathing name, 
-    and subdirectory storage.
-    these models will be strored within a sub domain 
-    along side the original model 
-    and we need to store the details 
-    of the dwt into the file name
+def save_model(model, original_model_path, guid):
     """
+    save the model
+    """
+    # Determine the directory of the original model
+    directory = os.path.dirname(original_model_path)
+    # Create a new directory name with the GUID
+    new_directory_name = f"{directory}/optimized_{guid}"
+    os.makedirs(new_directory_name, exist_ok=True)
+    # Save the model in the new directory
+    model_save_path = f"{new_directory_name}/model.h5"
+    model.save(model_save_path)
+    # return model_save_path
 
-    model.save()
-    return str(save_dir)
+def log_model_changes(log_path, guid, model_changes):
+    # Assume model_changes is a dictionary containing change details
+    if not os.path.exists(log_path):
+        with open(log_path, 'w') as file:
+            json.dump([], file)
+    
+    with open(log_path, 'r+') as file:
+        logs = json.load(file)
+        logs.append({"guid": guid, "changes": model_changes})
+        file.seek(0)
+        json.dump(logs, file, indent=4)
 
 # DWT process
 
@@ -102,16 +122,36 @@ def optimize_model(threshold, wavelet, level):
     Returns:
         None
     """
-    model = get_model(FLAGS.model_dir)
+    model = get_model(FLAGS.model_path)
+    guid = generate_guid()
     for layer in model.layers:
         if layer.weights:
+            print("Getting Weights")
             weights = layer.get_weights()[0]
+            print("Getting Coeffecients and Original shape")
             coeffs, original_shape = apply_dwt(
                 weights=weights, wavelet=wavelet, level=level)
+            print("Begining the Prune process")
             pruned_coeffs = prune_coeffs(coeffs=coeffs, threshold=threshold)
+            print("Makinng the new weights")
             new_weights = reconstruct_weights(
                 pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
+            print("Setting the new weights")
             layer.set_weights([new_weights] + layer.get_weights()[1:])
+    # Save the optimized model
+    save_model(model, original_model_path=FLAGS.model_path, guid=guid)
+    
+    # Log model changes
+    model_changes = {
+        "wavelet": wavelet,
+        "level": level,
+        "threshold": threshold,
+        # Include other relevant details such as pruning percentage, quantization level, etc.
+    }
+    log_model_changes("model_changes_log.json", guid, model_changes)
+    
+    #return model_save_path
+    
 
 
 def apply_dwt(weights, wavelet='haar', level=1):
@@ -161,7 +201,7 @@ def prune_coeffs(coeffs, threshold=0.85):
 
 # DWT random Weights
 
-def optimize_model(threshold, wavelet, level):
+def random_optimizer(threshold, wavelet, level):
     return "TESTING ONLY"
 
 # IDWT process
@@ -195,19 +235,21 @@ def main(argv):
     """
     runs the show
     """
-    print(FLAGS.model_dir)
+    print(FLAGS.model_path)
 
     # Parameters
     wavelet_type = FLAGS.wavelet  # Can be 'db1', 'sym2', etc.
     decomposition_level = FLAGS.level  # Level of wavelet decomposition
     threshold = FLAGS.threshold  # Pruning threshold
-    prun_percentage = FLAGS.prun_percentage
     # Percentage of weights to prune selectively
     prune_percentage = FLAGS.prun_percent
     if not FLAGS.random_quantize:
-        new_model = optimize_model(threshold=threshold, wavelet=wavelet_type, level=decomposition_level)
+        print("Full optimization start")
+        optimize_model(threshold=threshold, wavelet=wavelet_type, level=decomposition_level)
+        print("Optimization complete")
     else:
-        new_model = random_optimizer(threshold=threshold, wavelet=wavelet_type, level=decomposition_level, prun_percentage)
+        # new_model = random_optimizer(threshold=threshold, wavelet=wavelet_type, level=decomposition_level, prun_percentage)
+        print(f"testing for percent of {prune_percentage}")
 
 
 if __name__ == '__main__':
