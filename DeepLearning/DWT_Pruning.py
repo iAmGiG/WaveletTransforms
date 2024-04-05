@@ -61,17 +61,16 @@ FLAGS = flags.FLAGS
 '''
 flags.DEFINE_string('model_path', None,
                     'Full path to the original DWT TensorFlow model.')
-
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
                   'Type of wavelet to use for DWT.')
 flags.DEFINE_integer('level', '1', 'Decomposition level for the DWT.')
-flags.DEFINE_float('threshold', '0.085',
+flags.DEFINE_float('threshold', '0.286',
                    'Threshold for thresholding the wavelet coefficients obtained from the DWT.')
 flags.DEFINE_string('quant_level', 'binary',
                     'Level of quantization (binary, ternary, etc.)')
 flags.DEFINE_float('prun_percent', 50, 'Percentage of weights to quantize')
 flags.DEFINE_boolean('random_quantize', False,
-                     'Enable random weight quantization')
+                     'Enable random(ly selected) weight quantization')
 flags.mark_flag_as_required('model_path')
 
 def generate_guid():

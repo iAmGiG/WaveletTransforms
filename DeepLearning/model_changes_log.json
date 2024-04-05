@@ -6,5 +6,53 @@
             "level": 1,
             "threshold": 0.85
         }
+    },
+    {
+        "guid": "bf9a5d00cef84046a403039fccf1dbdc",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.085
+        }
+    },
+    {
+        "guid": "ff5000997dd34b0c99e41f547eb6bc30",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.314
+        }
+    },
+    {
+        "guid": "eeeead28c6b3496f8ccdc7805d694709",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236
+        }
+    },
+    {
+        "guid": "2ebd6cc2255846c6860a18521444cc6f",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.5
+        }
+    },
+    {
+        "guid": "7587b5a4400f4ed996889eb7ea22269b",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.426
+        }
+    },
+    {
+        "guid": "e82daea795db4c6980d3c06567eec068",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.286
+        }
     }
 ]
