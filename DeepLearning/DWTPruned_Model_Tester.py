@@ -1,9 +1,11 @@
+import uuid
 import seaborn as sns
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.models import load_model
+from datetime import datetime
 from absl import app, flags
 import time
 import os
@@ -21,39 +23,43 @@ flags.DEFINE_boolean('use_gpu', True, 'Whether to use GPU or not')
 # Mandatory flag definitions
 flags.mark_flag_as_required('model_dir')
 
-
-def parse_model_filename(filename):
+def parse_model_directory(path):
     """
-    Parse the filename of a model to extract wavelet, level, threshold, and date information.
+    Parse the directory path or filename to extract the UUID and the last few digits of the UUID.
+    If a UUID is not found, returns the current month and day.
 
     Parameters:
-    - filename (str): The filename to parse.
+    - path (str): The directory path or filename to parse.
 
     Returns:
-    - dict: A dictionary containing the parsed elements 'wavelet', 'level', 'threshold', 'date', and 'quantized'.
-
-    Raises:
-    - ValueError: If the filename does not match the expected pattern.
+    - dict: A dictionary containing the parsed elements 'uuid' and 'uuid_digits'.
+            If a UUID is not found, 'uuid' will be None, and 'uuid_digits' will be the current month and day.
     """
-    patterns = [
-        r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)_(?P<threshold>[^_]+)_(?P<date>\d{2}-\d{2})\.h5$",
-        r"mnist_model_dwt_(?P<wavelet>\w+)_(?P<level>\d+)(?:_(?P<threshold>[^_]+))?_(?P<date>\d{2}-\d{2})\.h5$"
-    ]
+    # Extract the base name from the path
+    base_name = os.path.basename(path)
 
-    for pattern in patterns:
-        match = re.match(pattern, filename)
-        if match:
-            return {
-                'wavelet': match.group('wavelet'),
-                'level': int(match.group('level')),
-                'threshold': match.group('threshold'),
-                'date': match.group('date'),
-                'quantized': 'notquantized'
-            }
+    # Regular expression pattern to match a UUID
+    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
-    raise ValueError(f"Filename {filename} does not match expected patterns.")
+    # Find the UUID in the base name
+    match = re.search(uuid_pattern, base_name, re.IGNORECASE)
 
+    if match:
+        uuid_str = match.group()
+        uuid_obj = uuid.UUID(uuid_str)
 
+        # Get the full UUID
+        full_uuid = str(uuid_obj)
+
+        # Get the last few digits of the UUID (adjust the number as needed)
+        uuid_digits = full_uuid[-4:]
+
+        return {'uuid': full_uuid, 'uuid_digits': uuid_digits}
+    else:
+        # If a UUID is not found, use the current month and day as a fallback
+        current_date = datetime.now().strftime('%m%d')
+        return {'uuid': None, 'uuid_digits': current_date}
+    
 def load_and_evaluate_model(model_file_path):
     """
     Load the MNIST dataset and a pre-trained model from a specified file path, evaluate the model's performance,
@@ -83,7 +89,7 @@ def load_and_evaluate_model(model_file_path):
         return None, None, None, None
 
     model_dir, model_filename = os.path.split(model_file_path)
-    model_details = parse_model_filename(model_filename)
+    model_details = parse_model_directory(model_filename)
 
     # Load the model directly from the provided path
     print(f"Loading model from {model_dir}...")
@@ -145,9 +151,11 @@ def plot_metrics(metrics, model_path, model_details, testY):
 
     # Adjust the figsize to fit your screen better
     fig, axs = plt.subplots(3, 2, figsize=(15, 20))
-    fig.suptitle(
-        f"Model Evaluation Metrics - {model_details['wavelet']}, Level: {model_details['level']}, model_details: {model_details['threshold']}"
-    )
+    # TODO
+    # fig.suptitle(
+    #     f"Model Evaluation Metrics - {model_details['wavelet']}, Level: {model_details['level']}, model_details: {model_details['threshold']}"
+    # )
+    fig.suptitle(f"Model Evaluation Metrics {datetime.now().strftime('%m%d')}")
 
     # Accuracy
     axs[0, 0].bar(['Accuracy'], [metrics['accuracy']])
@@ -184,8 +192,9 @@ def plot_metrics(metrics, model_path, model_details, testY):
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    # Save the plot as a PDF in the same directory as the model
-    plot_filename = f"evaluation_{model_details['wavelet']}_{model_details['quantized']}.pdf"
+    # Save the plot as a PDF in the same directory as the model TODO
+    # plot_filename = f"evaluation_{model_details['wavelet']}_{model_details['quantized']}.pdf"
+    plot_filename = f"evaluation_{datetime.now().strftime('%m%d')}.pdf"
     plot_filepath = os.path.join(os.path.dirname(model_path), plot_filename)
     plt.savefig(plot_filepath)
     print(f"Saved plot to {plot_filepath}")
@@ -207,12 +216,14 @@ def plot_confusion_matrix(y_true, y_pred, model_details, model_path):
     conf_matrix = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues")
-    plt.title(f"Confusion Matrix - {model_details['wavelet']}")
+    # plt.title(f"Confusion Matrix - {model_details['wavelet']}") TODO
+    plt.title(f"Confusion Matrix {datetime.now().strftime('%m%d')}")
     plt.xlabel('Predicted Labels')
     plt.ylabel('Actual Labels')
 
-    # Adjust this filename as necessary to include all relevant model details
-    plot_filename = f"confusion_matrix_{model_details['wavelet']}_{model_details['date']}.pdf"
+    # Adjust this filename as necessary to include all relevant model details TODO
+    #  = f"confusion_matrix_{model_details['wavelet']}_{model_details['date']}.pdf"
+    plot_filename = f"confusion_matrix_{datetime.now().strftime('%m%d')}"
     plot_filepath = os.path.join(os.path.dirname(model_path), plot_filename)
     plt.savefig(plot_filepath)
     print(f"Saved plot to {plot_filepath}")
@@ -242,11 +253,14 @@ def plot_accuracy_over_samples(testY, predictions, model_details, model_path):
         (~correct_predictions).nonzero()[0]), 'ro', label='Incorrect', markersize=1)
     plt.yticks([0, 1], ['Incorrect', 'Correct'])
     plt.xlabel('Sample')
-    plt.title(
-        f"Prediction Accuracy Over Samples - {model_details['wavelet']} - {model_details['quantized']}")
+    # plt.title( TODO
+    #     f"Prediction Accuracy Over Samples - {model_details['wavelet']} - {model_details['quantized']}")
+    plt.title(f"Prediction Accuracy Over Samples {datetime.now().strftime('%m%d')}")
     plt.legend()
+    
 
-    plot_filename = f"accuracy_over_samples_{model_details['wavelet']}_{model_details['quantized']}.pdf"
+    # f"accuracy_over_samples_{model_details['wavelet']}_{model_details['quantized']}.pdf"
+    plot_filename = f"accuracy_over_samples_{datetime.now().strftime('%m%d')}.pdf"
     plot_filepath = os.path.join(os.path.dirname(model_path), plot_filename)
     plt.savefig(plot_filepath)
     print(f"Saved plot to {plot_filepath}")
