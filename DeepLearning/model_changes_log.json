@@ -54,5 +54,44 @@
             "level": 1,
             "threshold": 0.286
         }
+    },
+    {
+        "guid": "fe47f2b0bf224bc2ac8582ea407f9b13",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "157c18903e6b4c6f90699aa04cfb3043",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "157c18903e6b4c6f90699aa04cfb3043",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "7331eee0cf8d476c8b2f88faf2c2575a",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "7331eee0cf8d476c8b2f88faf2c2575a",
+        "changes": {
+            "Random prune completed": true
+        }
     }
 ]
