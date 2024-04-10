@@ -93,5 +93,65 @@
         "changes": {
             "Random prune completed": true
         }
+    },
+    {
+        "guid": "1096e47d212445a38decadcf45bd9805",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "1096e47d212445a38decadcf45bd9805",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "4af4f59d133f4867ba987b3ecb0e767d",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "4af4f59d133f4867ba987b3ecb0e767d",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "56097e402d3a49f889893ebc8518d0bf",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "56097e402d3a49f889893ebc8518d0bf",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "c29d4de2b2c841fc9989350cb498234e",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "c29d4de2b2c841fc9989350cb498234e",
+        "changes": {
+            "Random prune completed": true
+        }
     }
 ]

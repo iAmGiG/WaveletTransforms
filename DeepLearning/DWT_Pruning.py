@@ -87,7 +87,6 @@ def generate_guid():
 def get_model(model_path):
     """
     gets the model from the defined location.
-
     """
     # Load the pre-trained model
     model = tf.keras.models.load_model(model_path)

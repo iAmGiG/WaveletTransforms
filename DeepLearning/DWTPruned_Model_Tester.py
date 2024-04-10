@@ -18,8 +18,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 FLAGS = flags.FLAGS
 flags.DEFINE_string('model_dir', None,
                     'Full path to the model file to be evaluated')
-flags.DEFINE_boolean('use_gpu', True, 'Whether to use GPU or not')
-
+flags.DEFINE_boolean('use_gpu', False, 'Whether to use GPU or not')
+# TODO: Remove when done with this round of testing, and replace with regex.
+flags.DEFINE_boolean('wasRandModel', False, "use if model was random pruned")
 # Mandatory flag definitions
 flags.mark_flag_as_required('model_dir')
 
@@ -80,7 +81,14 @@ def load_and_evaluate_model(model_file_path):
     # Load or prepare your test dataset
     (testX, testY), (_, _) = mnist.load_data()
     testX = testX / 255.0  # Normalize
-    testY_categorical = to_categorical(testY)
+    # Test zone Begin
+    print(f"Shape of testY: {testY.shape}\nShape of testX: {testX.shape}")
+    # testX = testX.reshape((-1, 28, 28, 1))  # For MNIST dataset
+    # testX = testX.reshape((-1, 28, 28))
+    # testX = np.expand_dims(testX, axis=-1)
+    # testY_categorical = tf.one_hot(testY, depth=10)
+    # Test zene ends
+    testY_categorical = tf.keras.utils.to_categorical(testY)
     print(f"Loaded test dataset with {len(testX)} samples.")
 
     # Verify the model file exists directly
@@ -94,8 +102,9 @@ def load_and_evaluate_model(model_file_path):
     # Load the model directly from the provided path
     print(f"Loading model from {model_dir}...")
     model = load_model(model_file_path)
+    model.summary()
 
-    # Evaluate accuracy
+    # Evaluate accuracy, batch_size=32 - use as needed.
     loss, accuracy = model.evaluate(testX, testY_categorical)
     print(f"Loss: {loss:.4f}")
     print(f"Accuracy: {accuracy*100:.2f}%")
@@ -126,7 +135,6 @@ def load_and_evaluate_model(model_file_path):
         'predictions': predictions,
         'sparsity': sparsity * 100,  # Convert to percentage
     }
-
     return metrics, model_file_path, model_details, testY
 
 
@@ -194,7 +202,7 @@ def plot_metrics(metrics, model_path, model_details, testY):
 
     # Save the plot as a PDF in the same directory as the model TODO
     # plot_filename = f"evaluation_{model_details['wavelet']}_{model_details['quantized']}.pdf"
-    plot_filename = f"evaluation_{datetime.now().strftime('%m%d')}.pdf"
+    plot_filename = f"evaluation_{datetime.now().strftime('%m%d')}_wasRand-{FLAGS.wasRandModel}.pdf"
     plot_filepath = os.path.join(os.path.dirname(model_path), plot_filename)
     plt.savefig(plot_filepath)
     print(f"Saved plot to {plot_filepath}")
@@ -260,7 +268,7 @@ def plot_accuracy_over_samples(testY, predictions, model_details, model_path):
     
 
     # f"accuracy_over_samples_{model_details['wavelet']}_{model_details['quantized']}.pdf"
-    plot_filename = f"accuracy_over_samples_{datetime.now().strftime('%m%d')}.pdf"
+    plot_filename = f"accuracy_over_samples_{datetime.now().strftime('%m%d')}_wasRand-{FLAGS.wasRandModel}.pdf"
     plot_filepath = os.path.join(os.path.dirname(model_path), plot_filename)
     plt.savefig(plot_filepath)
     print(f"Saved plot to {plot_filepath}")
