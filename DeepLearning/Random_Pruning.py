@@ -21,7 +21,8 @@ def randomly_prune_model(model, num_prune, target_layers=None):
 
     # If no specific layers are targeted, prune all except the first and last layers
     if target_layers is None:
-        target_layers = [i for i, layer in enumerate(model.layers) if layer.weights and not isinstance(layer, (tf.keras.layers.Dropout, tf.keras.layers.MaxPooling2D))]
+        target_layers = [i for i, layer in enumerate(model.layers) if layer.weights and not isinstance(
+            layer, (tf.keras.layers.Dropout, tf.keras.layers.MaxPooling2D))]
 
     total_weights_in_target_layers = sum(
         original_weights[i].size for i in target_layers)
@@ -50,8 +51,10 @@ def randomly_prune_model(model, num_prune, target_layers=None):
 
     pruned_model.set_weights(pruned_weights)
 
+    # Compiling here was causing issue "The issue with compiling the model in the randomly_prune_model
+    #       function and then saving it arises from how Keras manages the compiled state."
     # Compile the pruned model to make it ready for evaluation
-    pruned_model.compile(optimizer=model.optimizer, loss=model.loss, metrics=model.metrics)
-    pruned_model.trainable = False
+    # pruned_model.compile(optimizer=model.optimizer,
+    #                      loss=model.loss, metrics=model.metrics)
     pruned_model.summary()
     return pruned_model

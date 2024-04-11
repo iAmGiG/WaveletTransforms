@@ -153,5 +153,50 @@
         "changes": {
             "Random prune completed": true
         }
+    },
+    {
+        "guid": "b6a62cdffa0f4e288aba6a25f8ac3a5d",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "b6a62cdffa0f4e288aba6a25f8ac3a5d",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "cf878e240f924055b41b03abe02d45e7",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "cf878e240f924055b41b03abe02d45e7",
+        "changes": {
+            "Random prune completed": true
+        }
+    },
+    {
+        "guid": "2d569e0ee70448e69b10fc052b714ebd",
+        "changes": {
+            "wavelet": "haar",
+            "level": 1,
+            "threshold": 0.236,
+            "total pruned count": 88704
+        }
+    },
+    {
+        "guid": "2d569e0ee70448e69b10fc052b714ebd",
+        "changes": {
+            "Random prune completed": true
+        }
     }
 ]

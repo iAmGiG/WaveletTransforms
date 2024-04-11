@@ -87,7 +87,7 @@ def load_and_evaluate_model(model_file_path):
     # testX = testX.reshape((-1, 28, 28))
     # testX = np.expand_dims(testX, axis=-1)
     # testY_categorical = tf.one_hot(testY, depth=10)
-    # Test zene ends
+    # Test zene ends, , num_classes=10
     testY_categorical = tf.keras.utils.to_categorical(testY)
     print(f"Loaded test dataset with {len(testX)} samples.")
 
@@ -99,13 +99,18 @@ def load_and_evaluate_model(model_file_path):
     model_dir, model_filename = os.path.split(model_file_path)
     model_details = parse_model_directory(model_filename)
 
+
     # Load the model directly from the provided path
     print(f"Loading model from {model_dir}...")
     model = load_model(model_file_path)
+    # TODO Look like we need this if we random compile, replace with dynamic elements, so true for rand models.
+    if FLAGS.wasRandModel:
+        model.compile(optimizer='adam',
+                    loss='categorical_crossentropy', metrics=['accuracy'])
     model.summary()
 
-    # Evaluate accuracy, batch_size=32 - use as needed.
-    loss, accuracy = model.evaluate(testX, testY_categorical)
+    # Evaluate accuracy, batch_size=32 - use as needed., verbose=1
+    loss, accuracy = model.evaluate(x=testX, y=testY_categorical)
     print(f"Loss: {loss:.4f}")
     print(f"Accuracy: {accuracy*100:.2f}%")
 
