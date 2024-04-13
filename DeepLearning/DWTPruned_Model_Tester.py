@@ -16,13 +16,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model_dir', None,
+flags.DEFINE_string('model_path', None,
                     'Full path to the model file to be evaluated')
 flags.DEFINE_boolean('use_gpu', False, 'Whether to use GPU or not')
 # TODO: Remove when done with this round of testing, and replace with regex.
 flags.DEFINE_boolean('wasRandModel', False, "use if model was random pruned")
 # Mandatory flag definitions
-flags.mark_flag_as_required('model_dir')
+flags.mark_flag_as_required('model_path')
 
 def parse_model_directory(path):
     """
@@ -96,12 +96,12 @@ def load_and_evaluate_model(model_file_path):
         print(f"Model file not found: {model_file_path}")
         return None, None, None, None
 
-    model_dir, model_filename = os.path.split(model_file_path)
+    model_path, model_filename = os.path.split(model_file_path)
     model_details = parse_model_directory(model_filename)
 
 
     # Load the model directly from the provided path
-    print(f"Loading model from {model_dir}...")
+    print(f"Loading model from {model_path}...")
     model = load_model(model_file_path)
     # TODO Look like we need this if we random compile, replace with dynamic elements, so true for rand models.
     if FLAGS.wasRandModel:
@@ -317,7 +317,7 @@ def main(argv):
     # Ensure this function also returns the model_path
     # Assuming this now directly contains the model file path
     metrics, model_path, model_details, testY = load_and_evaluate_model(
-        FLAGS.model_dir)
+        FLAGS.model_path)
     if metrics:
         plot_metrics(metrics, model_path, model_details, testY)
         plot_accuracy_over_samples(

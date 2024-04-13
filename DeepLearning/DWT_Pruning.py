@@ -23,6 +23,10 @@ the weights are staying?
 TODO: HOW ARE THE VALUES BEIGN PRUNNED
 """
 
+"""
+TODO threshold values:
+0, 0.236, 0.382, 0.5, 0.618, 0.786, 1
+"""
 # Define Flags.
 FLAGS = flags.FLAGS
 '''
@@ -65,7 +69,7 @@ flags.DEFINE_string('model_path', None,
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
                   'Type of wavelet to use for DWT.')
 flags.DEFINE_integer('level', '1', 'Decomposition level for the DWT.')
-flags.DEFINE_float('threshold', '0.236',
+flags.DEFINE_float('threshold', '1.0',
                    'Threshold for thresholding the wavelet coefficients obtained from the DWT.')
 flags.DEFINE_string('quant_level', 'binary',
                     'Level of quantization (binary, ternary, etc.)')
@@ -106,9 +110,9 @@ def save_model(model, original_model_path, guid, isRandomPruned=False):
     os.makedirs(new_directory_name, exist_ok=True)
     # Save the model in the new directory
     if not isRandomPruned:
-        model_save_path = f"{new_directory_name}/model.h5"
+        model_save_path = f"{new_directory_name}/model_threshold{FLAGS.threshold}.h5"
     else:
-        model_save_path = f"{new_directory_name}/model_RandPruned.h5"
+        model_save_path = f"{new_directory_name}/model_RandPruned_threshold{FLAGS.threshold}.h5"
     model.save(model_save_path)
     # return model_save_path
 
