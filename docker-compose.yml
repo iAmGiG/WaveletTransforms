@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  tensorflow_gpu:
+    image: tensorflow/tensorflow:latest-gpu
+    volumes:
+      - WaveletTransforms:/workspace  # Mount the persistent volume
+      - $HOME/.ssh:/root/.ssh  # Keep your SSH keys mounted
+    ports:
+      - "8888:8888"  # Optional: Expose port for Jupyter Notebook
+    command: bash
+    restart: unless-stopped  # Ensures the container restarts automatically
