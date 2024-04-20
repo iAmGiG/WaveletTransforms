@@ -17,25 +17,10 @@ FLAGS = flags.FLAGS
 '''
 - Wavelet: Type of wavelet to use for the Discrete Wavelet Transform (DWT).
     The choice of wavelet affects the base wavelet function used in the DWT,
-    which can impact the model's ability to learn from data that has been decomposed in different ways.
+    which can impact the model's ability to learn from data 
+    that has been decomposed in different ways.
     Different wavelets capture different characteristics of the input data,
     potentially influencing the features learned by the model.
-- Save Directory: Directory to save the trained models.
-    If you want to save models to the default location (./SavedDWTModels),
-    you need to be in the DeepLearning folder when running the script.
-    Otherwise, it will create a new folder and subdirectories in the current working directory.
-    This flag determines where the trained models are stored for future use or analysis.
-- Batch size: Batch size for training.
-    This determines the number of samples that will be propagated through 
-        the neural network at once during the training process.
-    A larger batch size requires more memory 
-        but can lead to faster training and smoother updates to the model's weights.
-    However, very large batch sizes can also degrade generalization performance.
-- Epochs: Number of epochs or iterations over the entire training dataset.
-    This specifies how many times the learning algorithm will 
-        work through the entire training dataset.
-    More epochs can lead to better convergence and potentially higher accuracy,
-    but also increase the risk of overfitting if not appropriately regularized.
 - Levels: Decomposition level for the DWT.
     A higher level results in a deeper decomposition of the input data,
         affecting the granularity of the wavelet transform applied to the input data.
@@ -107,10 +92,32 @@ def save_model(model, original_model_path, guid, isRandomPruned=False):
 
 
 def log_to_csv(guid, details):
-    """ Log experiment details to a CSV file. """
-    with open(flags.FLAGS.csv_path, mode='a', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow([guid] + details)
+    """
+    Log experiment details to a CSV file in a structured manner.
+
+    Args:
+        guid (str): Unique identifier for the experiment.
+        details (dict): Dictionary containing all details to be logged.
+    """
+    # Define the CSV path from flags or directly
+    csv_path = flags.FLAGS.csv_path
+
+    # Check if the file exists to write headers; otherwise, append data
+    file_exists = os.path.isfile(csv_path)
+
+    with open(csv_path, mode='a', newline='') as file:
+        fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'DWT Phase',
+                      'Original Parameter Count', 'Non-zero Params', 'Total Pruned Count']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+        if not file_exists:
+            writer.writeheader()  # Write the header only once
+
+        # Construct the row data as a dictionary
+        row_data = {'GUID': guid}
+        row_data.update(details)
+        writer.writerow(row_data)
+
 
 # DWT process
 
@@ -125,6 +132,7 @@ def optimize_model(threshold, wavelet, level, guid):
         threshold (float): The threshold value used for pruning wavelet coefficients.
         wavelet (str): The type of wavelet to be used for the wavelet transform.
         level (int): The decomposition level for the wavelet transform.
+        guid (str): Unique identifier for the experiment.
 
     Returns:
         None
@@ -132,10 +140,10 @@ def optimize_model(threshold, wavelet, level, guid):
     model = get_model(FLAGS.model_path)
     total_pruned_count = 0
     original_param_count = model.count_params()
-    non_zero_params = model.non_zeroParams()
+    skipped_layers = 0 # keep track of layers that didn't have weights.
 
     for layer in model.layers:
-        if layer.weights:
+        if hasattr(layer, 'weights') and layer.weights:
             print("Getting Weights")
             weights = layer.get_weights()[0]
             print("Getting Coeffecients and Original shape")
@@ -150,6 +158,10 @@ def optimize_model(threshold, wavelet, level, guid):
                 pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
             print("Setting the new weights")
             layer.set_weights([new_weights] + layer.get_weights()[1:])
+        else:
+            # Handle layers without weights
+            skipped_layers = skipped_layers + 1
+            print(f"Layer {layer.name} has no weights and is skipped.")
 
     # At this point, `total_pruned_count` holds the total number of parameters pruned across the model
     print(f"Total parameters pruned: {total_pruned_count}")
@@ -161,10 +173,11 @@ def optimize_model(threshold, wavelet, level, guid):
         "Wavelet": wavelet,
         "Level": level,
         "Threshold": threshold,
+        "Layers skipped": skipped_layers,
+        "DWT Phase": 'Yes',
         "Original Paramater count": original_param_count,
-        "Non-zero params": non_zero_params,
+        "Prune count": pruned_count,
         "Total pruned count": total_pruned_count,
-        # Include other relevant details such as pruning percentage, quantization level, etc.
     }
     log_to_csv(guid, model_changes)
 
@@ -251,7 +264,6 @@ def random_pruning(prune_count, guid):
 
     # Log model changes
     model_changes = {
-        "Prune count": prune_count,
         "Random prune completed": True,
     }
     log_to_csv(guid, model_changes)

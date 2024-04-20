@@ -18,11 +18,21 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 FLAGS = flags.FLAGS
 flags.DEFINE_string('model_path', None,
                     'Full path to the model file to be evaluated')
-flags.DEFINE_boolean('use_gpu', False, 'Whether to use GPU or not')
 # TODO: Remove when done with this round of testing, and replace with regex.
 flags.DEFINE_boolean('wasRandModel', False, "use if model was random pruned")
 # Mandatory flag definitions
 flags.mark_flag_as_required('model_path')
+
+def setup_tensorflow_gpu():
+    """ Set TensorFlow to use any available GPU. """
+    gpus = tf.config.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Set TensorFlow to use only the first GPU
+            tf.config.set_visible_devices(gpus[0], 'GPU')
+            tf.config.experimental.set_memory_growth(gpus[0], True)
+        except RuntimeError as e:
+            print("Error setting up GPU:", e)
 
 def parse_model_directory(path):
     """
@@ -301,18 +311,7 @@ def main(argv):
     Exits with a status code indicating success or failure of the operations.
     """
     # Assuming load_and_evaluate_model returns a dictionary of metrics
-    if FLAGS.use_gpu:
-        gpus = tf.config.list_physical_devices('GPU')
-        if gpus:
-            try:
-                for gpu in gpus:
-                    tf.config.experimental.set_memory_growth(gpu, True)
-                print(f"Using GPU: {gpus}")
-            except RuntimeError as e:
-                print(f"Error configuring GPU: {e}")
-    else:
-        print("Using CPU for evaluation.")
-        os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    setup_tensorflow_gpu()
 
     # Ensure this function also returns the model_path
     # Assuming this now directly contains the model file path
