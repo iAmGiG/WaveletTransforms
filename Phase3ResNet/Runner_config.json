@@ -1,0 +1,12 @@
+{
+    "model_directory": "./models",
+    "log_directory": "./logs",
+    "selective_prune_directory": "./prune_output/selective",
+    "random_prune_directory": "./prune_output/random",
+    "wavelet_type": "haar",
+    "level": 1,
+    "threshold": 0.5,
+    "default_model_path": "./models/default_model.h5",
+    "default_log_path": "./logs/default_log.csv"
+  }
+  

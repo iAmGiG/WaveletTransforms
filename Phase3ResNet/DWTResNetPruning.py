@@ -67,8 +67,12 @@ def get_model(model_path):
     gets the model from the defined location.
     """
     # Load the pre-trained model
-    model = tf.keras.models.load_model(model_path)
-    return model
+    try:
+        model = tf.keras.models.load_model(model_path)
+        return model
+    except Exception as e:
+        print("Failed to load model:", e)
+        return None
 
 # Save model
 
@@ -138,9 +142,11 @@ def optimize_model(threshold, wavelet, level, guid):
         None
     """
     model = get_model(FLAGS.model_path)
+    if model is None:
+        raise ValueError("The model could not be loaded. Please check the model path Or the model itself")
     total_pruned_count = 0
     original_param_count = model.count_params()
-    skipped_layers = 0 # keep track of layers that didn't have weights.
+    skipped_layers = 0  # keep track of layers that didn't have weights.
 
     for layer in model.layers:
         if hasattr(layer, 'weights') and layer.weights:
