@@ -2,11 +2,10 @@ from absl import app, flags
 import tensorflow as tf
 import numpy as np
 import os
-import datetime
 import pywt
-import uuid
 import csv
 import ResNetRandomPruning as DWTR
+from transformers import TFResNetForImageClassification, ResNetConfig
 
 """
 TODO threshold values:
@@ -44,7 +43,7 @@ flags.DEFINE_float('threshold', '1.0',
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file.')
 flags.DEFINE_string('guid', None, 'GUID for the current pruning operation.')
-flags.mark_flag_as_required('model_path')
+# flags.mark_flag_as_required('model_path')
 flags.mark_flag_as_required('guid')
 
 
@@ -79,20 +78,33 @@ def get_model(model_path):
 
 def save_model(model, original_model_path, guid, isRandomPruned=False):
     """
-    save the model
+    Save the model in TensorFlow SavedModel format.
+
+    Args:
+        model: The TensorFlow model to save.
+        original_model_path: The path to the original model, used to determine save directory.
+        guid: Unique identifier for the save directory.
+        isRandomPruned: Flag to indicate if the model was pruned randomly.
     """
     # Determine the directory of the original model
-    directory = os.path.dirname(original_model_path)
+    directory = os.path.dirname(
+        original_model_path) if original_model_path is not None else os.getcwd()
+
     # Create a new directory name with the GUID
     new_directory_name = f"{directory}/pruned_{guid}"
     os.makedirs(new_directory_name, exist_ok=True)
-    # Save the model in the new directory
-    if not isRandomPruned:
-        model_save_path = f"{new_directory_name}/model_DWT_threshold{FLAGS.threshold}.h5"
-    else:
-        model_save_path = f"{new_directory_name}/model_RP_threshold{FLAGS.threshold}.h5"
-    model.save(model_save_path)
-    # return model_save_path
+
+    # Determine the save path based on pruning type
+    model_type = "RP" if isRandomPruned else "DWT"
+    model_save_path = f"{new_directory_name}/model_{model_type}_threshold{FLAGS.threshold}"
+
+    try:
+        # Save the model using PretrainedSavedModel
+        model.save_pretrained(model_save_path)
+        print(f"Model saved successfully at {model_save_path}")
+    except Exception as e:
+        print(f"Failed to save the model: {e}")
+        raise
 
 
 def log_to_csv(guid, details):
@@ -128,7 +140,7 @@ def log_to_csv(guid, details):
 # DWT all weights
 
 
-def optimize_model(threshold, wavelet, level, guid):
+def optimize_model(threshold, wavelet, level, guid, model=None):
     """
     Optimizes the weights of a pre-trained model by applying wavelet-based pruning.
 
@@ -136,41 +148,44 @@ def optimize_model(threshold, wavelet, level, guid):
         threshold (float): The threshold value used for pruning wavelet coefficients.
         wavelet (str): The type of wavelet to be used for the wavelet transform.
         level (int): The decomposition level for the wavelet transform.
-        guid (str): Unique identifier for the experiment.
 
     Returns:
         None
     """
-    model = get_model(FLAGS.model_path)
-    if model is None:
-        raise ValueError("The model could not be loaded. Please check the model path Or the model itself")
     total_pruned_count = 0
     original_param_count = model.count_params()
-    skipped_layers = 0  # keep track of layers that didn't have weights.
+    skipped_layers = 0
 
-    for layer in model.layers:
-        if hasattr(layer, 'weights') and layer.weights:
-            print("Getting Weights")
-            weights = layer.get_weights()[0]
-            print("Getting Coeffecients and Original shape")
-            coeffs, original_shape = apply_dwt(
-                weights=weights, wavelet=wavelet, level=level)
-            print("Begining the Prune process")
-            pruned_coeffs, pruned_count = prune_coeffs(
-                coeffs=coeffs, threshold=threshold)
-            total_pruned_count += pruned_count
-            print("Makinng the new weights")
-            new_weights = reconstruct_weights(
-                pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
-            print("Setting the new weights")
-            layer.set_weights([new_weights] + layer.get_weights()[1:])
-        else:
-            # Handle layers without weights
-            skipped_layers = skipped_layers + 1
-            print(f"Layer {layer.name} has no weights and is skipped.")
+    # Collect all Conv2D layers
+    conv2d_layers = [layer for layer in model.layers if isinstance(
+        layer, tf.keras.layers.Conv2D)]
 
-    # At this point, `total_pruned_count` holds the total number of parameters pruned across the model
+    for layer in conv2d_layers:
+        print(f"Processing layer: {layer.name}")
+        weights = layer.get_weights()[0]
+        print("Getting Coeffecients and Original shape")
+        coeffs, original_shape = apply_dwt(
+            weights=weights, wavelet=wavelet, level=level)
+        print("Beginning the Prune process")
+        pruned_coeffs, pruned_count_temp = prune_coeffs(
+            coeffs=coeffs, threshold=threshold)
+        total_pruned_count += pruned_count_temp
+        print("Making the new weights")
+        new_weights = reconstruct_weights(
+            pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
+        print("Setting the new weights")
+        layer.set_weights([new_weights] + layer.get_weights()[1:])
+
+    # Handle layers without weights
+    non_conv2d_layers = [layer for layer in model.layers if not isinstance(
+        layer, tf.keras.layers.Conv2D)]
+    for layer in non_conv2d_layers:
+        print(f"Layer {layer.name} has no weights and is skipped.")
+        skipped_layers += 1
+
     print(f"Total parameters pruned: {total_pruned_count}")
+    print(f"Total layers skipped: {skipped_layers}")
+
     # Save the optimized model
     save_model(model, original_model_path=FLAGS.model_path, guid=guid)
 
@@ -181,13 +196,12 @@ def optimize_model(threshold, wavelet, level, guid):
         "Threshold": threshold,
         "Layers skipped": skipped_layers,
         "DWT Phase": 'Yes',
-        "Original Paramater count": original_param_count,
-        "Prune count": pruned_count,
+        "Original Parameter count": original_param_count,
         "Total pruned count": total_pruned_count,
     }
     log_to_csv(guid, model_changes)
 
-    return total_pruned_count, guid
+    return total_pruned_count
 
 
 def apply_dwt(weights, wavelet='haar', level=1):
@@ -259,12 +273,13 @@ def prune_coeffs(coeffs, threshold=0.85):
 # DWT random Weights
 
 
-def random_pruning(prune_count, guid):
+def random_pruning(prune_count, guid, model):
     """
     prunes randomly.
     """
     random_pruned_modle = DWTR.randomly_prune_model(
-        model=get_model(FLAGS.model_path), num_prune=prune_count)
+        model=model, num_prune=prune_count)
+    # model=get_model(FLAGS.model_path), num_prune=prune_count)
     save_model(random_pruned_modle, original_model_path=FLAGS.model_path,
                guid=guid, isRandomPruned=True)
 
@@ -307,18 +322,28 @@ def main(argv):
     runs the show
     """
     setup_tensorflow_gpu()
-    print(FLAGS.model_path)
-
     # Parameters
     wavelet_type = FLAGS.wavelet  # Can be 'db1', 'sym2', etc.
     decomposition_level = FLAGS.level  # Level of wavelet decomposition
     threshold = FLAGS.threshold  # Pruning threshold
     guid = FLAGS.guid
+    # if FLAGS.model_path is None:
 
-    # Percentage of weights to prune selectively
+    # Load the configuration if needed
+    config = ResNetConfig.from_pretrained('microsoft/resnet-18')
+    # Load the pre-trained model
+    model = TFResNetForImageClassification.from_pretrained(
+        'microsoft/resnet-18', config=config)
     prune_count = optimize_model(threshold=threshold, wavelet=wavelet_type,
-                                 level=decomposition_level, guid=guid)
-    random_pruning(prune_count, guid)
+                                 level=decomposition_level, guid=guid, model=model)
+    random_pruning(prune_count, guid, model=model)
+
+    # else:
+    #     print(FLAGS.model_path)
+    #     # Percentage of weights to prune selectively
+    #     prune_count = optimize_model(threshold=threshold, wavelet=wavelet_type,
+    #                                  level=decomposition_level, guid=guid)
+    #     random_pruning(prune_count, guid)
 
 
 if __name__ == '__main__':
