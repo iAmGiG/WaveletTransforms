@@ -189,6 +189,9 @@ def optimize_model(threshold, wavelet, level, guid, model=None):
 
 
 def process_layer(layer, threshold, wavelet, level, total_pruned_count):
+    """
+    This is looking like many changes will be coming soon?
+    """
     print(f"Processing layer: {layer.name}")
     weights = layer.get_weights()[0]
     print("Getting Coeffecients and Original shape")
