@@ -109,30 +109,32 @@ def save_model(model, original_model_path, guid, isRandomPruned=False):
 
 def log_to_csv(guid, details):
     """
-    Log experiment details to a CSV file in a structured manner.
-
-    Args:
-        guid (str): Unique identifier for the experiment.
-        details (dict): Dictionary containing all details to be logged.
+    Perfoms the logging
     """
-    # Define the CSV path from flags or directly
-    csv_path = flags.FLAGS.csv_path
+    try:
+        csv_path = flags.FLAGS.csv_path
+        file_exists = os.path.isfile(csv_path)
+        with open(csv_path, mode='a', newline='') as file:
+            writer = setup_csv_writer(file, file_exists)
+            row_data = {'GUID': guid, **details}
+            writer.writerow(row_data)
+    except Exception as e:
+        print(f"Failed to log data to CSV: {e}")
+        raise
 
-    # Check if the file exists to write headers; otherwise, append data
-    file_exists = os.path.isfile(csv_path)
 
-    with open(csv_path, mode='a', newline='') as file:
-        fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'DWT Phase',
-                      'Original Parameter Count', 'Non-zero Params', 'Total Pruned Count']
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-        if not file_exists:
-            writer.writeheader()  # Write the header only once
-
-        # Construct the row data as a dictionary
-        row_data = {'GUID': guid}
-        row_data.update(details)
-        writer.writerow(row_data)
+def setup_csv_writer(file, file_exists):
+    """
+    executes the logging
+    """
+    fieldnames = [
+        'GUID', 'Wavelet', 'Level', 'Threshold', 'DWT Phase',
+        'Original Parameter Count', 'Prune count', 'Layers skipped', 'Total Pruned Count'
+    ]
+    writer = csv.DictWriter(file, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+    return writer
 
 
 # DWT process
@@ -148,48 +150,83 @@ def optimize_model(threshold, wavelet, level, guid, model=None):
         threshold (float): The threshold value used for pruning wavelet coefficients.
         wavelet (str): The type of wavelet to be used for the wavelet transform.
         level (int): The decomposition level for the wavelet transform.
+        guid (str): Unique identifier for the experiment.
+        model: The pre-trained model to be optimized.
 
     Returns:
-        None
+        int: The total number of pruned parameters.
     """
-    total_pruned_count = 0
-    original_param_count = model.count_params()
+    try:
+        original_param_count = model.count_params()
+        skipped_layers = 0
+        pruned_counts = []
+
+        # Collect all Conv2D layers
+        conv2d_layers = [layer for layer in model.layers if isinstance(
+            layer, tf.keras.layers.Conv2D)]
+
+        for layer in conv2d_layers:
+            pruned_count_temp = process_layer(layer, threshold, wavelet, level)
+            pruned_counts.append(pruned_count_temp)
+
+        # Handle layers without weights
+        skipped_layers = handle_non_conv2d_layers(model)
+
+        total_pruned_count = sum(pruned_counts)
+        print(f"Total parameters pruned: {total_pruned_count}")
+
+        # Save the optimized model
+        save_model(model, original_model_path=FLAGS.model_path, guid=guid)
+
+        # Log model changes
+        log_model_changes(wavelet, level, threshold, skipped_layers,
+                          original_param_count, total_pruned_count, guid)
+    except Exception as e:
+        print(f"An error occurred during model optimization: {e}")
+        raise
+
+    return total_pruned_count
+
+
+def process_layer(layer, threshold, wavelet, level, total_pruned_count):
+    print(f"Processing layer: {layer.name}")
+    weights = layer.get_weights()[0]
+    print("Getting Coeffecients and Original shape")
+    coeffs, original_shape = apply_dwt(
+        weights=weights, wavelet=wavelet, level=level)
+    print("Beginning the Prune process")
+    pruned_coeffs, pruned_count_temp = prune_coeffs(
+        coeffs=coeffs, threshold=threshold)
+    total_pruned_count += pruned_count_temp
+    print("Making the new weights")
+    new_weights = reconstruct_weights(
+        pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
+    print("Setting the new weights")
+    layer.set_weights([new_weights] + layer.get_weights()[1:])
+    return pruned_count_temp
+
+
+def handle_non_conv2d_layers(model):
+    """
+    Handle layers without weights and return the number of skipped layers.
+
+    Args:
+        model: The model containing layers to be processed.
+
+    Returns:
+        int: The number of layers skipped.
+    """
     skipped_layers = 0
-
-    # Collect all Conv2D layers
-    conv2d_layers = [layer for layer in model.layers if isinstance(
-        layer, tf.keras.layers.Conv2D)]
-
-    for layer in conv2d_layers:
-        print(f"Processing layer: {layer.name}")
-        weights = layer.get_weights()[0]
-        print("Getting Coeffecients and Original shape")
-        coeffs, original_shape = apply_dwt(
-            weights=weights, wavelet=wavelet, level=level)
-        print("Beginning the Prune process")
-        pruned_coeffs, pruned_count_temp = prune_coeffs(
-            coeffs=coeffs, threshold=threshold)
-        total_pruned_count += pruned_count_temp
-        print("Making the new weights")
-        new_weights = reconstruct_weights(
-            pruned_coeffs=pruned_coeffs, wavelet=wavelet, original_shape=original_shape)
-        print("Setting the new weights")
-        layer.set_weights([new_weights] + layer.get_weights()[1:])
-
-    # Handle layers without weights
     non_conv2d_layers = [layer for layer in model.layers if not isinstance(
         layer, tf.keras.layers.Conv2D)]
     for layer in non_conv2d_layers:
         print(f"Layer {layer.name} has no weights and is skipped.")
         skipped_layers += 1
-
-    print(f"Total parameters pruned: {total_pruned_count}")
     print(f"Total layers skipped: {skipped_layers}")
+    return skipped_layers
 
-    # Save the optimized model
-    save_model(model, original_model_path=FLAGS.model_path, guid=guid)
 
-    # Log model changes
+def log_model_changes(wavelet, level, threshold, skipped_layers, original_param_count, total_pruned_count, guid):
     model_changes = {
         "Wavelet": wavelet,
         "Level": level,
@@ -200,8 +237,6 @@ def optimize_model(threshold, wavelet, level, guid, model=None):
         "Total pruned count": total_pruned_count,
     }
     log_to_csv(guid, model_changes)
-
-    return total_pruned_count
 
 
 def apply_dwt(weights, wavelet='haar', level=1):
