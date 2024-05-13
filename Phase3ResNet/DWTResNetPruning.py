@@ -1,7 +1,7 @@
 import os
 import json
 import tensorflow as tf
-from transformers import TFResNetModel
+from transformers import TFResNetModel, TFAutoModel, AutoConfig
 import pywt
 import numpy as np
 from absl import app, flags, logging
@@ -9,13 +9,13 @@ from absl import app, flags, logging
 FLAGS = flags.FLAGS
 
 # Define command-line flags
-flags.DEFINE_string('model_path', None,
+flags.DEFINE_string('model_path', "microsoft/resnet-18",
                     'Path to the pre-trained model to be pruned.')
-flags.DEFINE_float('threshold', None,
+flags.DEFINE_float('threshold', 0.5,
                    'Threshold value for identifying insignificant weights.')
-flags.DEFINE_string('wavelet_type', None,
-                    'Type of wavelet function used in the decomposition.')
-flags.DEFINE_integer('decomp_level', None,
+flags.DEFINE_enum('wavelet_type', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
+                  'Type of wavelet to use for DWT.')
+flags.DEFINE_integer('decomp_level', 1,
                      'Decomposition level for wavelet transform.')
 flags.DEFINE_string(
     'save_path', None, 'Directory path where the pruned model and logs are saved.')
@@ -32,6 +32,24 @@ def setup_tensorflow_gpu():
         except RuntimeError as e:
             print("Error setting up GPU:", e)
 
+def load_model(model_path, config_path):
+    """
+    Load a TensorFlow-compatible ResNet model from a locally stored model and config file.
+
+    Args:
+        model_path (str): Path to the locally stored TensorFlow model file.
+        config_path (str): Path to the corresponding config.json file.
+
+    Returns:
+        tf.keras.Model: Loaded TensorFlow model.
+    """
+    # Load the model configuration
+    config = AutoConfig.from_pretrained(config_path)
+
+    # Load the TensorFlow model
+    model = TFAutoModel.from_pretrained(model_path, from_pt=True, config=config)
+
+    return model
 
 def save_and_log_results(model, pruned_weights_info, save_path, model_type):
     """
@@ -138,9 +156,42 @@ def apply_wavelet_decomposition_tf(weights, wavelet_type, decomp_level, threshol
     return pruned_weights
 
 
+def get_pruned_weights_info(weights):
+    """
+    Calculate and return information about the pruned weights for a given layer.
+
+    Args:
+        weights (Tensor or np.array): Weights tensor or numpy array from a layer.
+
+    Returns:
+        dict: A dictionary containing the count and percentage of pruned weights.
+    """
+    # Convert to numpy array if weights is a tensor
+    if isinstance(weights, tf.Tensor):
+        weights = weights.numpy()
+
+    # Calculate the number of pruned weights (weights equal to zero)
+    pruned_weights_count = np.sum(weights == 0)
+
+    # Calculate the total number of weights
+    total_weights_count = np.product(weights.shape)
+
+    # Calculate the percentage of pruned weights
+    pruned_weights_percentage = (
+        pruned_weights_count / total_weights_count) * 100
+
+    # Create a dictionary with the pruned weights information
+    pruned_weights_info = {
+        'pruned_weights_count': int(pruned_weights_count),
+        'pruned_weights_percentage': pruned_weights_percentage
+    }
+
+    return pruned_weights_info
+
+
 def execute_pruning_workflow(model, threshold, wavelet_type, decomp_level, save_path):
     """
-    
+    does the heavy lifting.
     """
     pruned_weights_info = {}
 

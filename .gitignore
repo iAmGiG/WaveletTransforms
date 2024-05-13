@@ -142,3 +142,5 @@ cython_debug/
 .vscode/
 *.code-workspace
 .history/
+
+Phase3ResNet\__OGModel__
