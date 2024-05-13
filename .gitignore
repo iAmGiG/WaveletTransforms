@@ -143,4 +143,4 @@ cython_debug/
 *.code-workspace
 .history/
 
-Phase3ResNet\__OGModel__
+WaveletTransforms\Phase3ResNet\__OGModel__
