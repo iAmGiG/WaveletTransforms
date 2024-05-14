@@ -1,7 +1,7 @@
 import os
 import json
 import tensorflow as tf
-from transformers import TFResNetModel, TFAutoModel, AutoConfig
+from transformers import AutoConfig, TFAutoModelForImageClassification
 import pywt
 import numpy as np
 from absl import app, flags, logging
@@ -9,8 +9,10 @@ from absl import app, flags, logging
 FLAGS = flags.FLAGS
 
 # Define command-line flags
-flags.DEFINE_string('model_path', "microsoft/resnet-18",
+flags.DEFINE_string('model_path', None,
                     'Path to the pre-trained model to be pruned.')
+flags.DEFINE_string('config_path', None,
+                    'Path to the model configuration file (.json)')
 flags.DEFINE_float('threshold', 0.5,
                    'Threshold value for identifying insignificant weights.')
 flags.DEFINE_enum('wavelet_type', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
@@ -19,6 +21,8 @@ flags.DEFINE_integer('decomp_level', 1,
                      'Decomposition level for wavelet transform.')
 flags.DEFINE_string(
     'save_path', None, 'Directory path where the pruned model and logs are saved.')
+flags.DEFINE_string('csv_path', 'experiment_log.csv',
+                    'Path to the CSV log file')
 
 
 def setup_tensorflow_gpu():
@@ -32,6 +36,7 @@ def setup_tensorflow_gpu():
         except RuntimeError as e:
             print("Error setting up GPU:", e)
 
+
 def load_model(model_path, config_path):
     """
     Load a TensorFlow-compatible ResNet model from a locally stored model and config file.
@@ -43,13 +48,17 @@ def load_model(model_path, config_path):
     Returns:
         tf.keras.Model: Loaded TensorFlow model.
     """
-    # Load the model configuration
-    config = AutoConfig.from_pretrained(config_path)
+    try:
+        config = AutoConfig.from_pretrained(config_path)
+        model = TFAutoModelForImageClassification.from_pretrained(
+            model_path, config=config)
+        print(f'Model loaded successfully from {model_path}')
+        return model
+    except Exception as e:
+        print(f"Error loading model: %s", str(e))
+        # logging.error('Error loading model: %s', str(e))
+        raise
 
-    # Load the TensorFlow model
-    model = TFAutoModel.from_pretrained(model_path, from_pt=True, config=config)
-
-    return model
 
 def save_and_log_results(model, pruned_weights_info, save_path, model_type):
     """
@@ -218,7 +227,8 @@ def main(argv):
     """
     # Load the pre-trained ResNet model
     setup_tensorflow_gpu()
-    model = TFResNetModel.from_pretrained(FLAGS.model_path)
+    model = load_model("__OGModel__/tf_model.h5", '__OGModel__/config.json')
+    # model = TFResNetModel.from_pretrained(FLAGS.model_path)
     # Load the configuration if needed
     # config = ResNetConfig.from_pretrained('microsoft/resnet-18')
     # # Load the pre-trained model
