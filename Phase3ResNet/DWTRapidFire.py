@@ -60,10 +60,13 @@ def prune_layer_weights(layer, wavelet, level, threshold):
         list: Pruned weights.
     """
     weights = layer.get_weights()
+    if not weights:
+        return weights
+
     pruned_weights = []
     for weight in weights:
         original_shape = weight.shape
-        flattened_weight = weight.flatten()
+        flattened_weight = np.ravel(weight)
 
         coeffs = pywt.wavedec(flattened_weight, wavelet,
                               level=level, mode='periodization')
@@ -74,13 +77,17 @@ def prune_layer_weights(layer, wavelet, level, threshold):
         pruned_weight = pywt.waverec(
             pruned_coeffs, wavelet, mode='periodization')
 
-        # Reshape pruned_weight to original shape
-        # Trim if necessary
-        pruned_weight = pruned_weight[:flattened_weight.size]
-        pruned_weight = pruned_weight.reshape(original_shape)
+        # Check and adjust the length of pruned_weight
+        if pruned_weight.size > flattened_weight.size:
+            pruned_weight = pruned_weight[:flattened_weight.size]
+        elif pruned_weight.size < flattened_weight.size:
+            pruned_weight = np.pad(
+                pruned_weight, (0, flattened_weight.size - pruned_weight.size), 'constant')
 
+        pruned_weight = np.reshape(pruned_weight, original_shape)
         pruned_weights.append(pruned_weight)
-        print(f'Pruned weights with threshold {threshold}')
+
+    print(f'Pruned weights with threshold {threshold}')
     return pruned_weights
 
 
@@ -98,10 +105,13 @@ def prune_model(model, wavelet, level, threshold):
         tf.keras.Model: Pruned model.
     """
     for layer in model.layers:
-        if len(layer.get_weights()) > 0:
-            pruned_weights = prune_layer_weights(
-                layer, wavelet, level, threshold)
-            layer.set_weights(pruned_weights)
+        if layer.trainable and layer.get_weights():
+            try:
+                pruned_weights = prune_layer_weights(
+                    layer, wavelet, level, threshold)
+                layer.set_weights(pruned_weights)
+            except Exception as e:
+                print(f"Error pruning layer {layer.name}: {e}")
     return model
 
 

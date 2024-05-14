@@ -145,3 +145,4 @@ cython_debug/
 
 Phase3ResNet/__OGModel__
 Phase3ResNet/pruned_model
+Phase3ResNet/pruned_123
