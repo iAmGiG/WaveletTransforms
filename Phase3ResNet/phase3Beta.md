@@ -39,3 +39,14 @@ To use this repository, follow these steps:
 1. Configure the paths and parameters in the flags section of `main_pruning.py`.
 2. Run `main_pruning.py` to perform wavelet-based pruning and prepare for random pruning.
 3. Execute `random_pruning.py` with the appropriate parameters to perform random pruning.
+
+Folder Structure
+${workspace}/Phase3ResNet/SavedModels
+${pruned_instance} -wavelet-${wavelet}_threshold-${threshold}_level-${level}_guid-${last4digitsGUID}
+
+selective_pruned
+model (folder containing the pruned model)
+log.csv (CSV log for selective pruning details)
+random_pruned
+model (folder containing the pruned model)
+log.csv (CSV log for random pruning details)
