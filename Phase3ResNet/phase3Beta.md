@@ -1,49 +1,41 @@
-# Wavelet-Based Pruning of ResNet Models
+# Deep Learning Model Pruning
 
-This project aims to prune pre-trained ResNet models using wavelet-based techniques and random pruning. The pruning process involves removing less significant weights from the model to reduce its size and computational complexity while maintaining acceptable performance levels. The project is organized into modular components for better maintainability and reusability.
+This repository contains the code for pruning deep learning models using both wavelet-based and random pruning methods. The architecture is modular, making it easy to modify or extend the pruning techniques.
 
 ## Suggested Architecture
 
-1. **Main Pruning Script (`main_pruning.py`)**
-2. **Wavelet-Based Pruning Module (`dwt_pruning.py`)**
-3. **Random Pruning Script (`random_pruning.py`)**
-4. **Utility Functions (`utils.py`)**
-
-## Detailed Breakdown
-
-### 1. Main Pruning Script (`main_pruning.py`)
-
-Handles the overall flow and coordinates the pruning process.
-
-### 2. Wavelet-Based Pruning Module (`dwt_pruning.py`)
-
-Contains the logic for wavelet-based pruning.
-
-### 3. Random Pruning Script (`random_pruning.py`)
-
-Executes random pruning based on the prune count obtained from the wavelet-based pruning.
-
-### 4. Utility Functions (`utils.py`)
-
-Contains common functions for loading models, saving models, logging, and setting up the CSV writer.
+1. **Main Pruning Script (`main_pruning.py`)**: Orchestrates the entire pruning process.
+2. **Wavelet-Based Pruning Module (`dwt_pruning.py`)**: Implements the wavelet-based pruning logic.
+3. **Random Pruning Script (`random_pruning.py`)**: Performs random pruning based on the output from the wavelet-based pruning.
+4. **Utility Functions (`utils.py`)**: Provides common functions used across the project.
 
 ## Workflow
 
-### Main Pruning Script
+### Main Pruning Script (`main_pruning.py`)
 
-- Loads the model.
-- Performs wavelet-based pruning using `dwt_pruning.py`.
-- Saves the pruned model and logs the details.
-- Prepares parameters for the random pruning step.
+- Loads the model from a specified path.
+- Performs wavelet-based pruning using the `dwt_pruning.py` module.
+- Saves the pruned model and logs the details to a CSV file.
+- Prepares parameters (such as the total prune count and model path) for the random pruning step.
 
-### Wavelet-Based Pruning Module
+### Wavelet-Based Pruning Module (`dwt_pruning.py`)
 
-- Handles wavelet-based pruning and logging of details.
+- Handles the wavelet-based pruning of the model.
+- Logs detailed information about the pruning process, including parameters and outcomes for each layer.
 
-### Random Pruning Script
+### Random Pruning Script (`random_pruning.py`)
 
-- Handles random pruning based on prune count and logging of details.
+- Executes random pruning based on the prune count obtained from the wavelet-based pruning.
+- Saves the randomly pruned model and logs the details.
 
-### Utility Functions
+### Utility Functions (`utils.py`)
 
-- Common functions for model loading, saving, logging, and setting up the CSV writer.
+- Contains functions for loading models, saving models, logging pruning details, and setting up CSV writers.
+
+## Usage
+
+To use this repository, follow these steps:
+
+1. Configure the paths and parameters in the flags section of `main_pruning.py`.
+2. Run `main_pruning.py` to perform wavelet-based pruning and prepare for random pruning.
+3. Execute `random_pruning.py` with the appropriate parameters to perform random pruning.
