@@ -2,6 +2,8 @@ import tensorflow as tf
 import pywt
 import numpy as np
 import os
+import csv
+import uuid
 from absl import app, flags
 from absl.flags import FLAGS
 from transformers import TFAutoModelForImageClassification, AutoConfig
@@ -12,6 +14,8 @@ flags.DEFINE_string('model_path', '__OGModel__/tf_model.h5',
 flags.DEFINE_string('config_path', '__OGModel__/config.json',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('output_path', None, 'Path to save the pruned model')
+flags.DEFINE_string('csv_path', 'experiment_log.csv',
+                    'Path to the CSV log file')
 flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2', 'mexh', 'morl'],
                   'Type of wavelet to use for DWT.')
 flags.DEFINE_integer(
@@ -57,13 +61,14 @@ def prune_layer_weights(layer, wavelet, level, threshold):
         threshold (float): Threshold value for pruning wavelet coefficients.
 
     Returns:
-        list: Pruned weights.
+        tuple: Pruned weights, original parameter count, non-zero parameters count, total pruned count.
     """
     weights = layer.get_weights()
     if not weights:
-        return weights
+        return weights, 0, 0, 0
 
     pruned_weights = []
+    total_pruned_count = 0
     for weight in weights:
         original_shape = weight.shape
         flattened_weight = np.ravel(weight)
@@ -71,6 +76,7 @@ def prune_layer_weights(layer, wavelet, level, threshold):
         coeffs = pywt.wavedec(flattened_weight, wavelet,
                               level=level, mode='periodization')
         coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs)
+        pruned_count = np.sum(np.abs(coeff_arr) < threshold)
         coeff_arr[np.abs(coeff_arr) < threshold] = 0
         pruned_coeffs = pywt.array_to_coeffs(
             coeff_arr, coeff_slices, output_format='wavedec')
@@ -86,12 +92,15 @@ def prune_layer_weights(layer, wavelet, level, threshold):
 
         pruned_weight = np.reshape(pruned_weight, original_shape)
         pruned_weights.append(pruned_weight)
+        total_pruned_count += pruned_count
 
-    print(f'Pruned weights with threshold {threshold}')
-    return pruned_weights
+    original_param_count = sum([weight.size for weight in weights])
+    non_zero_params = original_param_count - total_pruned_count
+
+    return pruned_weights, original_param_count, non_zero_params, total_pruned_count
 
 
-def prune_model(model, wavelet, level, threshold):
+def prune_model(model, wavelet, level, threshold, csv_writer, guid, dwt_phase):
     """
     Apply wavelet-based pruning to the entire model.
 
@@ -100,6 +109,9 @@ def prune_model(model, wavelet, level, threshold):
         wavelet (str): Type of wavelet to use for decomposition.
         level (int): Level of decomposition for the wavelet transform.
         threshold (float): Threshold value for pruning wavelet coefficients.
+        csv_writer (csv.DictWriter): CSV writer object for logging.
+        guid (str): Unique identifier for the pruning session.
+        dwt_phase (str): DWT Phase, either selective or random pruning.
 
     Returns:
         tf.keras.Model: Pruned model.
@@ -107,9 +119,20 @@ def prune_model(model, wavelet, level, threshold):
     for layer in model.layers:
         if layer.trainable and layer.get_weights():
             try:
-                pruned_weights = prune_layer_weights(
+                pruned_weights, original_param_count, non_zero_params, total_pruned_count = prune_layer_weights(
                     layer, wavelet, level, threshold)
                 layer.set_weights(pruned_weights)
+                csv_writer.writerow({
+                    'GUID': guid,
+                    'Wavelet': wavelet,
+                    'Level': level,
+                    'Threshold': threshold,
+                    'DWT Phase': dwt_phase,
+                    'Original Parameter Count': original_param_count,
+                    'Non-zero Params': non_zero_params,
+                    'Total Pruned Count': total_pruned_count
+                })
+                print(f'Layer {layer.name} pruned successfully.')
             except Exception as e:
                 print(f"Error pruning layer {layer.name}: {e}")
     return model
@@ -131,6 +154,26 @@ def save_model(model):
         raise
 
 
+def setup_csv_writer(csv_path):
+    """
+    Set up the CSV writer.
+
+    Args:
+        csv_path (str): Path to the CSV log file.
+
+    Returns:
+        tuple: CSV writer object and file object.
+    """
+    file_exists = os.path.isfile(csv_path)
+    csv_file = open(csv_path, mode='a', newline='')
+    fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'DWT Phase',
+                  'Original Parameter Count', 'Non-zero Params', 'Total Pruned Count']
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    if not file_exists:
+        writer.writeheader()
+    return writer, csv_file
+
+
 def validate_flags():
     """
     Validate the command-line arguments to ensure they are within acceptable ranges.
@@ -144,12 +187,20 @@ def main(_argv):
     print(f'Loading model from {FLAGS.model_path}')
     model = load_model(FLAGS.model_path, FLAGS.config_path)
 
+    print(f'Setting up CSV writer at {FLAGS.csv_path}')
+    csv_writer, csv_file = setup_csv_writer(FLAGS.csv_path)
+
+    # Generate a unique identifier for this pruning session
+    guid = str(uuid.uuid4())
+
     print(
         f'Pruning model with wavelet {FLAGS.wavelet}, level {FLAGS.level}, and threshold {FLAGS.threshold}')
     pruned_model = prune_model(
-        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold)
+        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, csv_writer, guid)
 
     save_model(pruned_model)
+
+    csv_file.close()
 
 
 if __name__ == '__main__':
