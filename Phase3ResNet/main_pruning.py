@@ -18,7 +18,7 @@ flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 
 flags.DEFINE_integer(
     'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.5, 'Threshold value for pruning wavelet coefficients')
+    'threshold', 0.9, 'Threshold value for pruning wavelet coefficients')
 
 
 def check_and_set_pruned_instance_path(pruned_instance):
@@ -47,6 +47,9 @@ def main(_argv):
     """
     # Load the pre-trained model
     model = load_model(FLAGS.model_path, FLAGS.config_path)
+    # Debug: Print model summary
+    print("Loaded model summary:")
+    model.summary()
 
     # Create a unique identifier and setup folder structure
     guid = str(uuid.uuid4())
@@ -60,6 +63,7 @@ def main(_argv):
     os.makedirs(random_pruned_path, exist_ok=True)
 
     # Perform wavelet-based pruning
+    print("Running Selective DWT pruning")
     selective_log_path = os.path.join(selective_pruned_path, 'log.csv')
     csv_writer, csv_file = setup_csv_writer(
         selective_log_path, mode='a')  # Open in append mode
@@ -69,6 +73,8 @@ def main(_argv):
     )
     save_model(pruned_model, os.path.join(selective_pruned_path, 'model'))
     csv_file.close()
+    print(
+        f"Total pruned count after wavelet-based pruning: {total_prune_count}")
 
     # Log experiment details for selective pruning
     experiment_log_path = 'experiment_log.csv'
@@ -77,20 +83,23 @@ def main(_argv):
 
     # Collect prune counts from the DWT pruning log
     layer_prune_counts = collect_prune_counts(selective_log_path)
+    print(
+        f"Completed DWT pruning on {layer_prune_counts} layers.\nStarting random pruning")
 
     # Perform random pruning
-    random_log_path = os.path.join(random_pruned_path, 'log.csv')
-    csv_writer, csv_file = setup_csv_writer(
-        random_log_path, mode='a')  # Open in append mode
-    random_model = load_model(FLAGS.model_path, FLAGS.config_path)
-    random_pruned_model = random_pruning(
-        random_model, layer_prune_counts, guid, csv_writer)
-    save_model(random_pruned_model, os.path.join(random_pruned_path, 'model'))
-    csv_file.close()
+    # random_log_path = os.path.join(random_pruned_path, 'log.csv')
+    # csv_writer, csv_file = setup_csv_writer(
+    #     random_log_path, mode='a')  # Open in append mode
+    # random_model = load_model(FLAGS.model_path, FLAGS.config_path)
+    # random_pruned_model = random_pruning(
+    #     random_model, layer_prune_counts, guid, csv_writer)
+    # save_model(random_pruned_model, os.path.join(random_pruned_path, 'model'))
+    # csv_file.close()
 
     # Log experiment details for random pruning
-    append_to_experiment_log(experiment_log_path, guid,
-                             'N/A', 'N/A', 'N/A', 'random', total_prune_count)
+    # append_to_experiment_log(experiment_log_path, guid,
+    #                          'N/A', 'N/A', 'N/A', 'random', total_prune_count)
+    # print("Completed Rand pruning")
 
 
 if __name__ == '__main__':

@@ -17,8 +17,9 @@ def random_pruning(model, layer_prune_counts, guid, csv_writer):
     Returns:
         tf.keras.Model: Randomly pruned model.
     """
+    total_pruned = 0
     for layer in model.layers:
-        if layer.trainable and isinstance(layer, tf.keras.layers.Conv2D):
+        if isinstance(layer, tf.keras.layers.Conv2D):
             weights = layer.get_weights()
             if not weights:
                 continue
@@ -26,14 +27,22 @@ def random_pruning(model, layer_prune_counts, guid, csv_writer):
             for weight in weights:
                 flat_weights = weight.flatten()
                 prune_count = layer_prune_counts.get(layer.name, 0)
+
+                # Debug: Print original weights and prune count for the layer
+                print(
+                    f"Original weights (flattened) for layer {layer.name}: {flat_weights}")
+                print(f"Prune count for layer {layer.name}: {prune_count}")
+
                 prune_indices = np.random.choice(
                     flat_weights.size, prune_count, replace=False)
                 flat_weights[prune_indices] = 0
                 pruned_weights.append(flat_weights.reshape(weight.shape))
 
+                # Debug: Print pruned weights for the layer
+                print(f"Pruned weights for layer {layer.name}: {flat_weights}")
+
             layer.set_weights(pruned_weights)
 
-            # Log pruning details for the layer
             original_param_count = sum(weight.size for weight in weights)
             non_zero_params = original_param_count - prune_count
             log_pruning_details(csv_writer, guid, 'N/A', 'N/A', 'N/A',

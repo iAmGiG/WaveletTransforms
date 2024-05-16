@@ -1,2 +1,19 @@
 GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count
 
+772d0361-27ed-475e-8f8e-bec62007b995,haar,1,0.5,selective,0
+772d0361-27ed-475e-8f8e-bec62007b995,N/A,N/A,N/A,random,0
+5d7ebdbb-96f5-45d0-a96e-c053d0eea01c,haar,1,0.5,selective,0
+5d7ebdbb-96f5-45d0-a96e-c053d0eea01c,N/A,N/A,N/A,random,0
+64b78990-324b-4961-a69a-92669839824e,haar,1,0.5,selective,0
+64b78990-324b-4961-a69a-92669839824e,N/A,N/A,N/A,random,0
+48ca5ac6-5113-4e0c-b8ed-894690b5887d,haar,1,0.9,selective,0
+48ca5ac6-5113-4e0c-b8ed-894690b5887d,N/A,N/A,N/A,random,0
+2b998e8e-d9d8-434e-8d91-6ea0d7290a70,haar,1,0.9,selective,0
+2b998e8e-d9d8-434e-8d91-6ea0d7290a70,N/A,N/A,N/A,random,0
+66257421-0508-4414-b806-5995aed5b134,haar,1,0.9,selective,0
+09bd6667-7bf0-4fec-a01d-55549a586d39,haar,1,0.9,selective,0
+8b19b1ba-7984-4e1f-9460-4555021d8d6e,haar,1,0.9,selective,0
+396dd972-61ab-444d-ad11-41a0259127ed,haar,1,0.9,selective,0
+517fd73d-c015-467a-8e98-8953ad8f26a0,haar,1,0.9,selective,0
+d5d2c9d4-b53c-4e64-9839-be2b6a6962ea,haar,1,0.9,selective,0
+18f507c5-1b41-48a5-ab53-ae60ee3d7600,haar,1,0.9,selective,11698542

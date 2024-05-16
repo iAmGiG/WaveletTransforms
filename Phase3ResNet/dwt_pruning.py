@@ -1,117 +1,87 @@
 import pywt
 import numpy as np
 import tensorflow as tf
-from utils import log_pruning_details
+from transformers import TFResNetForImageClassification
+
+# Example inspection result adjustment:
+# Let's assume the main layer is found to be 'tf_resnet_model' instead
 
 
 def multi_resolution_analysis(weights, wavelet, level, threshold):
-    """
-    Perform multi-resolution analysis and pruning on the weights.
-
-    Args:
-        weights (list of np.ndarray): List of weight arrays to be pruned.
-        wavelet (str): Type of wavelet to use for decomposition.
-        level (int): Level of decomposition for the wavelet transform.
-        threshold (float): Threshold value for pruning wavelet coefficients.
-
-    Returns:
-        tuple: Pruned weights and total pruned count.
-    """
     pruned_weights = []
     total_pruned_count = 0
     for weight in weights:
         original_shape = weight.shape
         flattened_weight = np.ravel(weight)
-
-        # Perform multi-resolution wavelet decomposition
         coeffs = pywt.wavedec(flattened_weight, wavelet,
                               level=level, mode='periodization')
         coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs)
-
-        # Prune low-importance scales
         for i in range(len(coeff_arr)):
             if np.abs(coeff_arr[i]).mean() < threshold:
-                total_pruned_count += np.sum(coeff_arr[i] != 0)
+                pruned_count = np.sum(coeff_arr[i] != 0)
+                total_pruned_count += pruned_count
                 coeff_arr[i] = 0
-
-        # Reconstruct the weights
         pruned_coeffs = pywt.array_to_coeffs(
             coeff_arr, coeff_slices, output_format='wavedec')
         pruned_weight = pywt.waverec(
             pruned_coeffs, wavelet, mode='periodization')
-
-        # Ensure the pruned weight has the same shape
         if pruned_weight.size > flattened_weight.size:
             pruned_weight = pruned_weight[:flattened_weight.size]
         elif pruned_weight.size < flattened_weight.size:
             pruned_weight = np.pad(
                 pruned_weight, (0, flattened_weight.size - pruned_weight.size), 'constant')
-
-        pruned_weight = np.reshape(pruned_weight, original_shape)
-        pruned_weights.append(pruned_weight)
-
+        pruned_weights.append(pruned_weight.reshape(original_shape))
     return pruned_weights, total_pruned_count
 
 
 def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
-    """
-    Apply wavelet-based pruning to the weights of a given layer and log details.
-
-    Args:
-        layer (tf.keras.layers.Layer): Layer to prune.
-        wavelet (str): Type of wavelet to use for decomposition.
-        level (int): Level of decomposition for the wavelet transform.
-        threshold (float): Threshold value for pruning wavelet coefficients.
-        csv_writer (csv.DictWriter): CSV writer object for logging.
-        guid (str): Unique identifier for the pruning session.
-        layer_name (str): Name of the layer being pruned.
-
-    Returns:
-        tuple: Pruned weights, total prune count, original parameter count, non-zero parameters count.
-    """
-    if not isinstance(layer, tf.keras.layers.Conv2D):
+    if hasattr(layer, 'kernel'):
+        weights = layer.kernel.numpy()
+        pruned_weights, total_pruned_count = multi_resolution_analysis(
+            weights, wavelet, level, threshold)
+        layer.kernel.assign(pruned_weights)
+        return pruned_weights, total_pruned_count
+    elif hasattr(layer, 'weights'):
+        weights = layer.get_weights()
+        pruned_weights, total_pruned_count = multi_resolution_analysis(
+            weights, wavelet, level, threshold)
+        layer.set_weights(pruned_weights)
+        return pruned_weights, total_pruned_count
+    else:
+        print(f"Layer {layer_name} is not a supported layer type. Skipping...")
         return layer.get_weights(), 0
 
-    weights = layer.get_weights()
-    if not weights:
-        return weights, 0
 
-    pruned_weights, total_pruned_count = multi_resolution_analysis(
-        weights, wavelet, level, threshold)
+def recursive_prune(layer, wavelet, level, threshold, csv_writer, guid, layer_name_prefix=""):
+    total_prune_count = 0
+    pruned_layers_count = 0
 
-    original_param_count = sum(weight.size for weight in weights)
-    non_zero_params = original_param_count - total_pruned_count
+    def inner_recursive_prune(current_layer, layer_name_prefix):
+        nonlocal total_prune_count, pruned_layers_count
+        full_layer_name = f"{layer_name_prefix}/{current_layer.name}"
+        # Adjust based on inspection
+        if isinstance(current_layer, tf.keras.Model) and current_layer.name == 'tf_resnet_model':
+            for sub_layer in current_layer.layers:
+                inner_recursive_prune(
+                    sub_layer, layer_name_prefix=full_layer_name)
+        elif isinstance(current_layer, tf.keras.layers.Layer):
+            try:
+                pruned_weights, layer_pruned_count = prune_layer_weights(
+                    current_layer, wavelet, level, threshold, csv_writer, guid, full_layer_name
+                )
+                total_prune_count += layer_pruned_count
+                pruned_layers_count += 1
+                print(
+                    f"Layer {full_layer_name} pruned. Total pruned count: {layer_pruned_count}")
+            except Exception as e:
+                print(f"Error pruning layer {full_layer_name}: {e}")
 
-    log_pruning_details(csv_writer, guid, wavelet, level, threshold, 'selective',
-                        original_param_count, non_zero_params, total_pruned_count, layer_name)
-
-    return pruned_weights, total_pruned_count, original_param_count, non_zero_params
+    inner_recursive_prune(layer, layer_name_prefix)
+    print(f"Completed DWT pruning on {pruned_layers_count} layers.")
+    return total_prune_count
 
 
 def wavelet_pruning(model, wavelet, level, threshold, csv_writer, guid):
-    """
-    Apply wavelet-based pruning to the entire model and log details.
-
-    Args:
-        model (tf.keras.Model): Model to prune.
-        wavelet (str): Type of wavelet to use for decomposition.
-        level (int): Level of decomposition for the wavelet transform.
-        threshold (float): Threshold value for pruning wavelet coefficients.
-        csv_writer (csv.DictWriter): CSV writer object for logging.
-        guid (str): Unique identifier for the pruning session.
-
-    Returns:
-        tf.keras.Model: Pruned model.
-    """
-    total_prune_count = 0
-    for layer in model.layers:
-        if layer.trainable and isinstance(layer, tf.keras.layers.Conv2D):
-            try:
-                pruned_weights, layer_pruned_count, original_param_count, non_zero_params = prune_layer_weights(
-                    layer, wavelet, level, threshold, csv_writer, guid, layer.name
-                )
-                layer.set_weights(pruned_weights)
-                total_prune_count += layer_pruned_count
-            except Exception as e:
-                print(f"Error pruning layer {layer.name}: {e}")
+    total_prune_count = recursive_prune(
+        model, wavelet, level, threshold, csv_writer, guid)
     return model, total_prune_count
