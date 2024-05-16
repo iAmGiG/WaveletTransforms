@@ -48,20 +48,12 @@ def main(_argv):
     csv_file.close()
 
     # Perform random pruning
-    random_model = load_model(FLAGS.model_path, FLAGS.config_path)
-    random_pruned_model, _ = random_pruning(
-        random_model, total_prune_count, guid)
-
-    # Save the randomly pruned model
-    save_model(random_pruned_model, os.path.join(random_pruned_path, 'model'))
-
-    # Log random pruning details
     random_log_path = os.path.join(random_pruned_path, 'log.csv')
     csv_writer, csv_file = setup_csv_writer(random_log_path)
-    log_pruning_details(
-        csv_writer, guid, 'N/A', 'N/A', 'N/A',
-        'random', 'all_layers', total_prune_count, 'N/A'
-    )
+    random_model = load_model(FLAGS.model_path, FLAGS.config_path)
+    random_pruned_model, _ = random_pruning(
+        random_model, total_prune_count, guid, csv_writer)
+    save_model(random_pruned_model, os.path.join(random_pruned_path, 'model'))
     csv_file.close()
 
 

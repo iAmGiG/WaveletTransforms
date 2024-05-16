@@ -1,45 +1,43 @@
 import numpy as np
 import tensorflow as tf
-import uuid
-from utils import load_model, save_model, setup_csv_writer, log_pruning_details
+from utils import log_pruning_details
 
 
-def random_pruning(model, prune_count):
+def random_pruning(model, prune_count, guid, csv_writer):
+    """
+    Apply random pruning to the model.
+
+    Args:
+        model (tf.keras.Model): The model to prune.
+        prune_count (int): The number of weights to prune.
+        guid (str): Unique identifier for the pruning session.
+        csv_writer (csv.DictWriter): CSV writer object for logging.
+
+    Returns:
+        tf.keras.Model: Randomly pruned model.
+    """
     total_pruned = 0
     for layer in model.layers:
-        if layer.trainable and layer.get_weights():
+        if layer.trainable and isinstance(layer, tf.keras.layers.Conv2D):
             weights = layer.get_weights()
+            if not weights:
+                continue
             pruned_weights = []
             for weight in weights:
                 flat_weights = weight.flatten()
+                # Select random indices to prune
                 prune_indices = np.random.choice(
                     flat_weights.size, prune_count, replace=False)
                 flat_weights[prune_indices] = 0
                 pruned_weights.append(flat_weights.reshape(weight.shape))
+                total_pruned += prune_count
+
             layer.set_weights(pruned_weights)
-            total_pruned += prune_count
+
+            # Log pruning details for the layer
+            original_param_count = sum(weight.size for weight in weights)
+            non_zero_params = original_param_count - total_pruned
+            log_pruning_details(csv_writer, guid, 'N/A', 'N/A', 'N/A',
+                                'random', original_param_count, non_zero_params, total_pruned, layer.name)
+
     return model, total_pruned
-
-
-def main(original_model_path, prune_count, guid):
-    model = load_model(original_model_path,
-                       original_model_path.replace('.h5', '_config.json'))
-    csv_writer, csv_file = setup_csv_writer('random_pruning_log.csv')
-
-    pruned_model, total_pruned = random_pruning(model, prune_count)
-    log_pruning_details(csv_writer, guid, 'N/A', 'N/A', 'N/A',
-                        'random', 'N/A', 'N/A', total_pruned, 'N/A')
-
-    save_model(pruned_model, f'pruned_model_{guid}_random')
-    csv_file.close()
-
-
-if __name__ == '__main__':
-    import sys
-    if len(sys.argv) != 4:
-        print("Usage: python random_pruning.py <original_model_path> <prune_count> <guid>")
-        sys.exit(1)
-    original_model_path = sys.argv[1]
-    prune_count = int(sys.argv[2])
-    guid = sys.argv[3]
-    main(original_model_path, prune_count, guid)
