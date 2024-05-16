@@ -143,6 +143,8 @@ cython_debug/
 *.code-workspace
 .history/
 
+# Test locations
 Phase3ResNet/__OGModel__
 Phase3ResNet/pruned_model
 Phase3ResNet/pruned_123
+Phase3ResNet/SavedModels

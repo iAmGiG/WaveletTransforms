@@ -1,5 +1,6 @@
 import pywt
 import numpy as np
+import tensorflow as tf
 from utils import log_pruning_details
 
 
@@ -52,15 +53,18 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
     return pruned_weights, total_pruned_count
 
 
-def prune_layer_weights(layer, wavelet, level, threshold):
+def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
     """
-    Apply wavelet-based pruning to the weights of a given layer.
+    Apply wavelet-based pruning to the weights of a given layer and log details.
 
     Args:
         layer (tf.keras.layers.Layer): Layer to prune.
         wavelet (str): Type of wavelet to use for decomposition.
         level (int): Level of decomposition for the wavelet transform.
         threshold (float): Threshold value for pruning wavelet coefficients.
+        csv_writer (csv.DictWriter): CSV writer object for logging.
+        guid (str): Unique identifier for the pruning session.
+        layer_name (str): Name of the layer being pruned.
 
     Returns:
         tuple: Pruned weights, total prune count, original parameter count, non-zero parameters count.
@@ -78,12 +82,15 @@ def prune_layer_weights(layer, wavelet, level, threshold):
     original_param_count = sum(weight.size for weight in weights)
     non_zero_params = original_param_count - total_pruned_count
 
+    log_pruning_details(csv_writer, guid, wavelet, level, threshold, 'selective',
+                        original_param_count, non_zero_params, total_pruned_count, layer_name)
+
     return pruned_weights, total_pruned_count, original_param_count, non_zero_params
 
 
 def wavelet_pruning(model, wavelet, level, threshold, csv_writer, guid):
     """
-    Apply wavelet-based pruning to the entire model.
+    Apply wavelet-based pruning to the entire model and log details.
 
     Args:
         model (tf.keras.Model): Model to prune.
@@ -101,12 +108,10 @@ def wavelet_pruning(model, wavelet, level, threshold, csv_writer, guid):
         if layer.trainable and isinstance(layer, tf.keras.layers.Conv2D):
             try:
                 pruned_weights, layer_pruned_count, original_param_count, non_zero_params = prune_layer_weights(
-                    layer, wavelet, level, threshold
+                    layer, wavelet, level, threshold, csv_writer, guid, layer.name
                 )
                 layer.set_weights(pruned_weights)
                 total_prune_count += layer_pruned_count
-                log_pruning_details(csv_writer, guid, wavelet, level, threshold, 'selective',
-                                    original_param_count, non_zero_params, layer_pruned_count, layer.name)
             except Exception as e:
                 print(f"Error pruning layer {layer.name}: {e}")
     return model, total_prune_count
