@@ -17,3 +17,9 @@ GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,
 517fd73d-c015-467a-8e98-8953ad8f26a0,haar,1,0.9,selective,0
 d5d2c9d4-b53c-4e64-9839-be2b6a6962ea,haar,1,0.9,selective,0
 18f507c5-1b41-48a5-ab53-ae60ee3d7600,haar,1,0.9,selective,11698542
+e75f3a42-99e7-46fd-aa3d-c80cccf6f4eb,haar,1,0.9,selective,11698542
+e75f3a42-99e7-46fd-aa3d-c80cccf6f4eb,N/A,N/A,N/A,random,11698542
+e5a30ae6-64e6-4821-97aa-5258b1c2ebe6,haar,1,0.9,selective,11697542
+d990ecf5-3ce7-4b31-a20e-f9453b7fce30,haar,1,0.236,selective,11686746
+74560504-731a-4ffe-8307-ecd743c80a08,haar,1,0.236,selective,11686746
+b73fa980-0f65-433b-8334-ec88583aa544,haar,1,0.236,selective,11686746

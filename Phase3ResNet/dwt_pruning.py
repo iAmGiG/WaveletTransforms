@@ -2,9 +2,7 @@ import pywt
 import numpy as np
 import tensorflow as tf
 from transformers import TFResNetForImageClassification
-
-# Example inspection result adjustment:
-# Let's assume the main layer is found to be 'tf_resnet_model' instead
+from utils import log_pruning_details
 
 
 def multi_resolution_analysis(weights, wavelet, level, threshold):
@@ -36,20 +34,27 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
 
 def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
     if hasattr(layer, 'kernel'):
-        weights = layer.kernel.numpy()
-        pruned_weights, total_pruned_count = multi_resolution_analysis(
-            weights, wavelet, level, threshold)
-        layer.kernel.assign(pruned_weights)
-        return pruned_weights, total_pruned_count
+        weights = [layer.kernel.numpy()]
     elif hasattr(layer, 'weights'):
         weights = layer.get_weights()
-        pruned_weights, total_pruned_count = multi_resolution_analysis(
-            weights, wavelet, level, threshold)
-        layer.set_weights(pruned_weights)
-        return pruned_weights, total_pruned_count
     else:
         print(f"Layer {layer_name} is not a supported layer type. Skipping...")
         return layer.get_weights(), 0
+
+    pruned_weights, total_pruned_count = multi_resolution_analysis(
+        weights, wavelet, level, threshold)
+    if hasattr(layer, 'kernel'):
+        layer.kernel.assign(pruned_weights[0])
+        print(f"Assigned pruned weights to kernel of layer {layer_name}")
+    else:
+        layer.set_weights(pruned_weights)
+        print(f"Assigned pruned weights to layer {layer_name}")
+
+    original_param_count = sum(weight.size for weight in weights)
+    non_zero_params = original_param_count - total_pruned_count
+    log_pruning_details(csv_writer, guid, wavelet, level, threshold, 'selective',
+                        original_param_count, non_zero_params, total_pruned_count, layer_name)
+    return pruned_weights, total_pruned_count
 
 
 def recursive_prune(layer, wavelet, level, threshold, csv_writer, guid, layer_name_prefix=""):
@@ -59,8 +64,7 @@ def recursive_prune(layer, wavelet, level, threshold, csv_writer, guid, layer_na
     def inner_recursive_prune(current_layer, layer_name_prefix):
         nonlocal total_prune_count, pruned_layers_count
         full_layer_name = f"{layer_name_prefix}/{current_layer.name}"
-        # Adjust based on inspection
-        if isinstance(current_layer, tf.keras.Model) and current_layer.name == 'tf_resnet_model':
+        if isinstance(current_layer, tf.keras.Model):
             for sub_layer in current_layer.layers:
                 inner_recursive_prune(
                     sub_layer, layer_name_prefix=full_layer_name)
