@@ -56,19 +56,24 @@ def random_pruning(model, layer_prune_counts, guid, csv_writer):
             print(
                 f"Layer {layer_name} pruned: {zero_count} weights set to zero, {non_zero_count} weights remaining.")
 
-        if hasattr(layer, 'kernel'):
-            layer.kernel.assign(pruned_weights[0])
-            print(f"Assigned pruned weights to kernel of layer {layer_name}")
+        if pruned_weights:
+            if hasattr(layer, 'kernel'):
+                layer.kernel.assign(pruned_weights[0])
+                print(
+                    f"Assigned pruned weights to kernel of layer {layer_name}")
+            else:
+                layer.set_weights(pruned_weights)
+                print(f"Assigned pruned weights to layer {layer_name}")
+
+            original_param_count = sum(weight.size for weight in weights)
+            non_zero_params = original_param_count - prune_count
+            log_pruning_details(csv_writer, guid, 'N/A', 'N/A', 'N/A', 'random',
+                                original_param_count, non_zero_params, prune_count, layer_name)
+
+            total_pruned += prune_count
         else:
-            layer.set_weights(pruned_weights)
-            print(f"Assigned pruned weights to layer {layer_name}")
-
-        original_param_count = sum(weight.size for weight in weights)
-        non_zero_params = original_param_count - prune_count
-        log_pruning_details(csv_writer, guid, 'N/A', 'N/A', 'N/A', 'random',
-                            original_param_count, non_zero_params, prune_count, layer_name)
-
-        total_pruned += prune_count
+            print(
+                f"No pruned weights for layer {layer_name}, skipping assignment.")
 
     def recursive_prune(current_layer, layer_name_prefix=""):
         layer_name = f"{layer_name_prefix}/{current_layer.name}"
