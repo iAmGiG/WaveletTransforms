@@ -1,11 +1,9 @@
 import os
 import uuid
-import numpy as np
-import tensorflow as tf
 from absl import app, flags
 from absl.flags import FLAGS
 from dwt_pruning import wavelet_pruning
-from random_pruning import random_pruning
+from random_pruning import random_pruning, collect_prune_counts
 from utils import load_model, save_model, setup_csv_writer, append_to_experiment_log
 
 # Command line argument setup
@@ -45,10 +43,11 @@ def check_and_set_pruned_instance_path(pruned_instance):
 
 def main(_argv):
     """
-    Main function to perform wavelet-based and random pruning.
+    gets it working
     """
     # Load the pre-trained model
     model = load_model(FLAGS.model_path, FLAGS.config_path)
+    # Debug: Print model summary
     print("Loaded model summary:")
     model.summary()
 
@@ -63,38 +62,44 @@ def main(_argv):
     os.makedirs(selective_pruned_path, exist_ok=True)
     os.makedirs(random_pruned_path, exist_ok=True)
 
-    # Perform wavelet-based pruning and store prune counts in memory
+    # Perform wavelet-based pruning
     print("Running Selective DWT pruning")
     selective_log_path = os.path.join(selective_pruned_path, 'log.csv')
     csv_writer, csv_file = setup_csv_writer(
         selective_log_path, mode='a')  # Open in append mode
 
-    pruned_model, layer_prune_counts = wavelet_pruning(
-        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, csv_writer, guid)
+    pruned_model, total_prune_count = wavelet_pruning(
+        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, csv_writer, guid
+    )
     save_model(pruned_model, os.path.join(selective_pruned_path, 'model'))
     csv_file.close()
-
     print(
-        f"Total pruned count after wavelet-based pruning: {sum(layer_prune_counts.values())}")
-    print(f"Layer prune counts: {layer_prune_counts}")
+        f"Total pruned count after wavelet-based pruning: {total_prune_count}")
 
     # Log experiment details for selective pruning
     experiment_log_path = 'experiment_log.csv'
-    append_to_experiment_log(experiment_log_path, guid, FLAGS.wavelet, FLAGS.level,
-                             FLAGS.threshold, 'selective', sum(layer_prune_counts.values()))
+    append_to_experiment_log(experiment_log_path, guid, FLAGS.wavelet,
+                             FLAGS.level, FLAGS.threshold, 'selective', total_prune_count)
 
-    print("Starting random pruning")
+    # Collect prune counts from the DWT pruning log
+    layer_prune_counts = collect_prune_counts(selective_log_path)
+    print(
+        f"Completed DWT pruning on {layer_prune_counts} layers.\nStarting random pruning")
 
-    # Perform random pruning using in-memory layer prune counts
+    # Perform random pruning
+    random_log_path = os.path.join(random_pruned_path, 'log.csv')
+    csv_writer, csv_file = setup_csv_writer(
+        random_log_path, mode='a')  # Open in append mode
     random_model = load_model(FLAGS.model_path, FLAGS.config_path)
     random_pruned_model = random_pruning(
-        random_model, layer_prune_counts, guid)
+        random_model, layer_prune_counts, guid, csv_writer)
     save_model(random_pruned_model, os.path.join(random_pruned_path, 'model'))
+    csv_file.close()
 
     # Log experiment details for random pruning
-    append_to_experiment_log(experiment_log_path, guid, 'N/A',
-                             'N/A', 'N/A', 'random', sum(layer_prune_counts.values()))
-    print("Completed random pruning")
+    append_to_experiment_log(experiment_log_path, guid,
+                             'N/A', 'N/A', 'N/A', 'random', total_prune_count)
+    print("Completed Rand pruning")
 
 
 if __name__ == '__main__':
