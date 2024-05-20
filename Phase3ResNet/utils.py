@@ -15,10 +15,10 @@ def load_model(model_path, config_path):
 
 def save_model(model, output_path):
     """
-    saves the model
+    Saves the model
     """
-    output_path = os.path.join(os.getcwd(), output_path)
-    model.save(output_path)
+    output_path = os.path.normpath(os.path.join(os.getcwd(), output_path))
+    model.save_pretrained(output_path)
     print(f"Model saved successfully at {output_path}")
 
 
@@ -80,12 +80,13 @@ def log_pruning_details(csv_writer, guid, wavelet, level, threshold, phase, orig
         csv_writer.writerow(row)
     except Exception as e:
         print(f"Failed to log pruning details for layer {layer_name}: {e}")
+        raise
 
 
-def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count):
+def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count, model_path):
     """
-    Append details of the pruning experiment to the experiment log.
-
+    Append details of the pruning experiment to the experiment log CSV file.
+    
     Args:
         file_path (str): Path to the experiment log CSV file.
         guid (str): Unique identifier for the pruning session.
@@ -94,12 +95,13 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
         threshold (float): Threshold value for pruning.
         phase (str): Pruning phase ('selective' or 'random').
         total_pruned_count (int): Total number of pruned weights.
+        model_path (str): Path to the saved pruned model.
     """
     try:
+        file_path = os.path.normpath(file_path)
         file_exists = os.path.isfile(file_path)
         with open(file_path, mode='a', newline='') as file:
-            fieldnames = ['GUID', 'Wavelet', 'Level',
-                          'Threshold', 'Phase', 'Total Pruned Count']
+            fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'Phase', 'Total Pruned Count', 'Model Path']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()
@@ -109,10 +111,12 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
                 'Level': level,
                 'Threshold': threshold,
                 'Phase': phase,
-                'Total Pruned Count': total_pruned_count
+                'Total Pruned Count': total_pruned_count,
+                'Model Path': os.path.normpath(model_path)
             })
     except Exception as e:
         print(f"Failed to append to experiment log: {e}")
+        raise
 
 
 def check_and_set_pruned_instance_path(pruned_instance):
