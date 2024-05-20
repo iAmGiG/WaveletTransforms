@@ -113,3 +113,23 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
             })
     except Exception as e:
         print(f"Failed to append to experiment log: {e}")
+
+
+def check_and_set_pruned_instance_path(pruned_instance):
+    """
+    Check if the script is run from the 'Phase3ResNet' directory and set the pruned_instance_path accordingly.
+
+    Args:
+        pruned_instance (str): The name of the pruned instance.
+
+    Returns:
+        str: The full path to the pruned instance directory.
+    """
+    current_dir = os.getcwd()
+    if os.path.basename(current_dir) == 'Phase3ResNet':
+        pruned_instance_path = os.path.join('SavedModels', pruned_instance)
+    else:
+        pruned_instance_path = os.path.join(
+            current_dir, 'Phase3ResNet', 'SavedModels', pruned_instance)
+    os.makedirs(pruned_instance_path, exist_ok=True)
+    return pruned_instance_path
