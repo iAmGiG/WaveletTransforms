@@ -40,34 +40,41 @@ def random_pruning(layer_prune_counts, guid, wavelet, level, threshold):
 
     for layer_name, prune_count in layer_prune_counts.items():
         if prune_count > 0:
-            layer = random_pruned_model.get_layer(layer_name)
-            if isinstance(layer, tf.keras.layers.Conv2D) or isinstance(layer, tf.keras.layers.Dense):
-                weights = layer.get_weights()
-                original_param_count = np.prod(weights[0].shape)
+            try:
+                layer = random_pruned_model.get_layer(layer_name)
+            except ValueError:
+                # If the layer is not found, try removing the prefix
+                layer_name_without_prefix = layer_name.split('/')[-1]
+                layer = random_pruned_model.get_layer(
+                    layer_name_without_prefix)
 
-                # Randomly select and zero out weight vectors or filters
-                num_filters_or_vectors = weights[0].shape[-1]
-                prune_indices = np.random.choice(
-                    num_filters_or_vectors, prune_count, replace=False)
-                pruned_weights = weights[0].copy()
-                pruned_weights[..., prune_indices] = 0
+            weights = layer.get_weights()
+            original_param_count = np.prod(weights[0].shape)
+            num_weights = weights[0].size
 
-                weights[0] = pruned_weights
-                layer.set_weights(weights)
+            # Ensure that the number of weights to prune doesn't exceed the total
+            num_to_prune = min(prune_count, num_weights)
 
-                # Calculate the number of non-zero parameters after pruning
-                non_zero_params = np.count_nonzero(pruned_weights)
+            # Randomly prune individual weights
+            pruned_weights = weights[0].flatten()
+            prune_indices = np.random.choice(
+                num_weights, num_to_prune, replace=False)
+            pruned_weights[prune_indices] = 0
+            pruned_weights = pruned_weights.reshape(weights[0].shape)
 
-                # Log pruning details
-                log_pruning_details(random_csv_writer, guid, wavelet, level, threshold, 'random',
-                                    original_param_count, non_zero_params, prune_count, layer_name)
+            weights[0] = pruned_weights
+            layer.set_weights(weights)
 
-                total_pruned_count += prune_count
-                print(
-                    f"Layer '{layer_name}' pruned with {prune_count} parameters in random pruning.")
-            else:
-                print(
-                    f"Layer '{layer_name}' is not a supported layer type. Skipping...")
+            # Calculate the number of non-zero parameters after pruning
+            non_zero_params = np.count_nonzero(pruned_weights)
+
+            # Log pruning details
+            log_pruning_details(random_csv_writer, guid, wavelet, level, threshold, 'random',
+                                original_param_count, non_zero_params, num_to_prune, layer_name)
+
+            total_pruned_count += num_to_prune
+            print(
+                f"Layer '{layer_name}' pruned with {num_to_prune} parameters in random pruning.")
 
     # Save the randomly pruned model
     save_model(random_pruned_model, random_pruned_dir)
@@ -106,9 +113,9 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
         normalized_layer_name = layer_name.split('/')[-1]
         try:
             layer = selective_pruned_model.get_layer(normalized_layer_name)
-            weights = layer.get_weights()
-            non_zero_params = np.count_nonzero(weights[0])
-            original_param_count = np.prod(weights[0].shape)
+            original_param_count = layer.count_params()
+            non_zero_params = np.sum([np.count_nonzero(weight)
+                                     for weight in layer.get_weights()])
             log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold, 'selective',
                                 original_param_count, non_zero_params, prune_count, normalized_layer_name)
         except ValueError as e:
@@ -122,8 +129,6 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
 
 
 def main(argv):
-    del argv  # Unused.
-
     model = load_model(FLAGS.model_path, FLAGS.config_path)
     print("Pre-trained model loaded successfully.")
 
