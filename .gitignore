@@ -148,3 +148,6 @@ Phase3ResNet/__OGModel__
 Phase3ResNet/pruned_model
 Phase3ResNet/pruned_123
 Phase3ResNet/SavedModels
+Phase3ResNet/__OGPyTorchModel__
+Phase3ResNet/EvaluationSubPhase/imagenet-1k-dataset/
+Phase3ResNet/EvaluationSubPhase/directory details

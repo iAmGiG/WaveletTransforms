@@ -1,7 +1,8 @@
 import os
-from absl import app, flags
+import copy
 import numpy as np
 import tensorflow as tf
+from absl import app, flags
 from transformers import TFAutoModelForImageClassification, AutoConfig
 from utils import setup_csv_writer, load_model, save_model, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path
 from dwt_pruning import wavelet_pruning
@@ -25,11 +26,11 @@ flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 
 
-def random_pruning(layer_prune_counts, guid, wavelet, level, threshold):
+def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_pruning_model):
     total_pruned_count = 0
 
     # Reload the original model
-    random_pruned_model = load_model(FLAGS.model_path, FLAGS.config_path)
+    random_pruned_model = random_pruning_model
 
     # Set up logging for the random pruned model
     random_pruned_dir = check_and_set_pruned_instance_path(
@@ -39,28 +40,39 @@ def random_pruning(layer_prune_counts, guid, wavelet, level, threshold):
         os.path.normpath(random_log_path), mode='w')
 
     for layer_name, prune_count in layer_prune_counts.items():
+        print(f"layer: {layer_name}\nPrune count: {prune_count}")
         if prune_count > 0:
-            try:
-                layer = random_pruned_model.get_layer(layer_name)
-            except ValueError:
-                # If the layer is not found, try removing the prefix
-                layer_name_without_prefix = layer_name.split('/')[-1]
-                layer = random_pruned_model.get_layer(
-                    layer_name_without_prefix)
-
+            actual_layer_name = layer_name.split('/')[-1]
+            layer = random_pruned_model.get_layer(actual_layer_name)
             weights = layer.get_weights()
-            original_param_count = np.prod(weights[0].shape)
+            # original_param_count = np.prod(weights[0].shape)
+            original_param_count = layer.count_params()
             num_weights = weights[0].size
+
+            # Debugging statements
+            print(
+                f"Layer '{actual_layer_name}' has {num_weights} weights. Trying to prune {prune_count} weights.")
 
             # Ensure that the number of weights to prune doesn't exceed the total
             num_to_prune = min(prune_count, num_weights)
+            print(f"Num to prune: {num_to_prune}")
 
             # Randomly prune individual weights
             pruned_weights = weights[0].flatten()
             prune_indices = np.random.choice(
                 num_weights, num_to_prune, replace=False)
             pruned_weights[prune_indices] = 0
-            pruned_weights = pruned_weights.reshape(weights[0].shape)
+
+            # Debugging statements
+            print(
+                f"Before reshaping, pruned weights shape: {pruned_weights.shape}")
+            print(f"Original weights shape: {weights[0].shape}")
+
+            # Reshape pruned weights back to original shape
+            pruned_weights = pruned_weights.reshape(
+                weights[0].shape)  # Highlighted line
+            # Highlighted line
+            assert pruned_weights.shape == weights[0].shape, "Reshaping error: Shapes do not match after pruning"
 
             weights[0] = pruned_weights
             layer.set_weights(weights)
@@ -137,13 +149,16 @@ def main(argv):
 
     guid = os.urandom(4).hex()
 
+    # Create a new instance of the model for random pruning
+    random_pruning_model = load_model(FLAGS.model_path, FLAGS.config_path)
+
     # Perform DWT (Selective) pruning
     layer_prune_counts = selective_pruning(
         model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, csv_writer, guid)
 
     # Perform Random pruning using the layer_prune_counts obtained from DWT pruning
     random_pruning(layer_prune_counts, guid, FLAGS.wavelet,
-                   FLAGS.level, FLAGS.threshold)
+                   FLAGS.level, FLAGS.threshold, random_pruning_model)
 
     running_log_file.close()
 
