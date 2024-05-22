@@ -6,7 +6,8 @@ import torch
 
 def load_model(model_path, config_path):
     config = AutoConfig.from_pretrained(config_path)
-    model = AutoModelForImageClassification.from_pretrained(model_path, config=config)
+    model = AutoModelForImageClassification.from_pretrained(
+        model_path, config=config)
     print("Pre-trained model loaded successfully.")
     return model
 
@@ -136,3 +137,28 @@ def check_and_set_pruned_instance_path(pruned_instance):
             current_dir, 'Phase3ResNet', 'SavedModels', pruned_instance)
     os.makedirs(pruned_instance_path, exist_ok=True)
     return pruned_instance_path
+
+
+def print_model_summary(model):
+    total_params = 0
+    print("Model Summary:")
+    print("Layer Name" + "\t" * 7 + "Output Shape" + "\t" * 5 + "Param #")
+    print("="*100)
+    for name, module in model.named_children():
+        if hasattr(module, 'weight') and hasattr(module.weight, 'size'):
+            layer_info = f"{name}\t" + \
+                str(module.weight.size()) + "\t" + f"{module.weight.numel()}"
+            total_params += module.weight.numel()
+            if hasattr(module, 'bias') and hasattr(module.bias, 'size'):
+                total_params += module.bias.numel()
+            print(layer_info)
+    print("="*100)
+    print(f"Total Params: {total_params}")
+
+
+def print_model_structure(model, depth=0):
+    indent = " " * (depth * 2)
+    for name, module in model.named_children():
+        print(f"{indent}{name} - {module.__class__.__name__}")
+        if list(module.children()):
+            print_model_structure(module, depth + 1)

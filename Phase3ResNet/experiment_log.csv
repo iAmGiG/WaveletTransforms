@@ -82,3 +82,7 @@ d23499f5,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-d234
 d23499f5,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-d234\random_pruned
 8201f663,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-8201\selective_pruned
 8201f663,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-8201\random_pruned
+ee96cc93,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-ee96\selective_pruned
+ee96cc93,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-ee96\random_pruned
+e7e8c4c0,haar,0,0.1,selective,11595512,SavedModels\haar_threshold-0.1_level-0_guid-e7e8\selective_pruned
+e7e8c4c0,haar,0,0.1,selective,11683712,88200,11595512,/ResNetForImageClassification

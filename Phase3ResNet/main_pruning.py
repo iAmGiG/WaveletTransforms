@@ -130,8 +130,22 @@ def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_p
 
 
 def selective_pruning(original_model, wavelet, level, threshold, csv_writer, guid):
-    selective_pruned_model, layer_prune_counts = wavelet_pruning(
-        original_model, wavelet, level, threshold, csv_writer, guid)
+    selective_pruned_model = copy.deepcopy(original_model)
+    layer_prune_counts = {}
+
+    def recursive_get_layer(model, layer_name):
+        name_parts = layer_name.split('.')
+        current_model = model
+        for part in name_parts:
+            if isinstance(current_model, nn.Module) and hasattr(current_model, part):
+                current_model = getattr(current_model, part)
+            else:
+                return None
+        return current_model
+
+    layer_prune_counts = recursive_prune(
+        selective_pruned_model, wavelet, level, threshold, csv_writer, guid)
+
     selective_pruned_dir = check_and_set_pruned_instance_path(
         f"{wavelet}_threshold-{threshold}_level-{level}_guid-{guid[:4]}/selective_pruned")
 
@@ -149,17 +163,19 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
 
     # Log pruning details
     for layer_name, prune_count in layer_prune_counts.items():
-        # Remove any potential prefix from the layer names
-        normalized_layer_name = layer_name.split('/')[-1]
-        try:
-            layer = selective_pruned_model.get_layer(normalized_layer_name)
-            original_param_count = layer.count_params()
-            non_zero_params = np.sum([np.count_nonzero(weight)
-                                     for weight in layer.get_weights()])
-            log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold, 'selective',
-                                original_param_count, non_zero_params, prune_count, normalized_layer_name)
-        except ValueError as e:
-            print(f"Error retrieving layer '{normalized_layer_name}': {e}")
+        layer = recursive_get_layer(selective_pruned_model, layer_name)
+        if layer is not None:
+            try:
+                original_param_count = sum(param.numel()
+                                           for param in layer.parameters())
+                non_zero_params = sum(param.data.cpu().numpy().flatten().nonzero()[
+                                      0].size for param in layer.parameters())
+                log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold, 'selective',
+                                    original_param_count, non_zero_params, prune_count, layer_name)
+            except Exception as e:
+                print(f"Error logging details for layer '{layer_name}': {e}")
+        else:
+            print(f"Could not find layer '{layer_name}' in the model.")
 
     selective_log_file.close()
 
@@ -168,36 +184,11 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
     return layer_prune_counts
 
 
-def print_model_summary(model):
-    total_params = 0
-    print("Model Summary:")
-    print("Layer Name" + "\t" * 7 + "Output Shape" + "\t" * 5 + "Param #")
-    print("="*100)
-    for name, module in model.named_children():
-        if hasattr(module, 'weight') and hasattr(module.weight, 'size'):
-            layer_info = f"{name}\t" + \
-                str(module.weight.size()) + "\t" + f"{module.weight.numel()}"
-            total_params += module.weight.numel()
-            if hasattr(module, 'bias') and hasattr(module.bias, 'size'):
-                total_params += module.bias.numel()
-            print(layer_info)
-    print("="*100)
-    print(f"Total Params: {total_params}")
-
-
-def print_model_structure(model, depth=0):
-    indent = " " * (depth * 2)
-    for name, module in model.named_children():
-        print(f"{indent}{name} - {module.__class__.__name__}")
-        if list(module.children()):
-            print_model_structure(module, depth + 1)
-
-
 def main(argv):
     model = load_model(FLAGS.model_path, FLAGS.config_path)
 
     # Recursively print the model structure
-    print_model_structure(model)
+    # print_model_structure(model)
 
     # Append mode for the running experiment log
     csv_writer, running_log_file = setup_csv_writer(FLAGS.csv_path, mode='a')

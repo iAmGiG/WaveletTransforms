@@ -33,7 +33,7 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
 
 
 def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
-    if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
+    if isinstance(layer, (nn.Conv2d, nn.Linear)):
         weights = [layer.weight.data.cpu().numpy()]
         if layer.bias is not None:
             weights.append(layer.bias.data.cpu().numpy())
@@ -45,6 +45,11 @@ def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, laye
         weights = [layer.fc.weight.data.cpu().numpy()]
         if layer.fc.bias is not None:
             weights.append(layer.fc.bias.data.cpu().numpy())
+    elif isinstance(layer, nn.Module):  # For the root module (ResNetForImageClassification)
+        weights = []
+        for name, param in layer.named_parameters():
+            if 'weight' in name:
+                weights.append(param.data.cpu().numpy())
     else:
         print(f"Layer {layer_name} is not a supported layer type. Skipping...")
         return 0
@@ -52,7 +57,7 @@ def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, laye
     pruned_weights, total_pruned_count = multi_resolution_analysis(
         weights, wavelet, level, threshold)
 
-    if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
+    if isinstance(layer, (nn.Conv2d, nn.Linear)):
         layer.weight.data = torch.from_numpy(pruned_weights[0])
         if layer.bias is not None:
             layer.bias.data = torch.from_numpy(pruned_weights[1])
@@ -64,6 +69,13 @@ def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, laye
         layer.fc.weight.data = torch.from_numpy(pruned_weights[0])
         if layer.fc.bias is not None:
             layer.fc.bias.data = torch.from_numpy(pruned_weights[1])
+    elif isinstance(layer, nn.Module):  # For the root module (ResNetForImageClassification)
+        idx = 0
+        for name, param in layer.named_parameters():
+            if 'weight' in name:
+                param.data = torch.from_numpy(pruned_weights[idx])
+                idx += 1
+
     print(f"Assigned pruned weights to layer {layer_name}")
 
     original_param_count = sum(weight.size for weight in weights)
