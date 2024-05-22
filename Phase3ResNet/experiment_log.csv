@@ -76,3 +76,9 @@ ff6a2dec,haar,0,0.1,selective,11601214,SavedModels\haar_threshold-0.1_level-0_gu
 ff6a2dec,haar,0,0.1,random,467222,SavedModels\haar_threshold-0.1_level-0_guid-ff6a\random_pruned
 ff6a2dec,haar,0,0.1,selective,11186112,42712,11143400,/tf_res_net_for_image_classification/resnet
 ff6a2dec,haar,0,0.1,selective,512000,54186,457814,/tf_res_net_for_image_classification/classifier.1
+1fa6ef68,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-1fa6\selective_pruned
+1fa6ef68,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-1fa6\random_pruned
+d23499f5,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-d234\selective_pruned
+d23499f5,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-d234\random_pruned
+8201f663,haar,0,0.1,selective,0,SavedModels\haar_threshold-0.1_level-0_guid-8201\selective_pruned
+8201f663,haar,0,0.1,random,0,SavedModels\haar_threshold-0.1_level-0_guid-8201\random_pruned

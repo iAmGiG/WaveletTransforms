@@ -1,20 +1,18 @@
 import os
 import copy
 import numpy as np
-import torch
-import torch.nn as nn
+import tensorflow as tf
 from absl import app, flags
-from torchsummary import summary
-from transformers import AutoModelForImageClassification, AutoConfig
+from transformers import TFAutoModelForImageClassification, AutoConfig
 from utils import setup_csv_writer, load_model, save_model, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path
 from dwt_pruning import wavelet_pruning
 
 FLAGS = flags.FLAGS
 
 # Command line argument setup
-flags.DEFINE_string('model_path', '__OGPyTorchModel__/pytorch_model.bin',
-                    'Path to the pre-trained ResNet model (bin file)')
-flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
+flags.DEFINE_string('model_path', '__OGModel__/tf_model.h5',
+                    'Path to the pre-trained ResNet model (.h5 file)')
+flags.DEFINE_string('config_path', '__OGModel__/config.json',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
@@ -26,14 +24,6 @@ flags.DEFINE_float(
     'threshold', 0.1, 'Threshold value for pruning wavelet coefficients')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
-
-
-def get_layer_by_name(model, layer_name):
-    parts = layer_name.split('/')
-    current_model = model
-    for part in parts[:-1]:
-        current_model = getattr(current_model, part)
-    return getattr(current_model, parts[-1])
 
 
 def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_pruning_model):
@@ -52,61 +42,43 @@ def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_p
     for layer_name, prune_count in layer_prune_counts.items():
         print(f"layer: {layer_name}\nPrune count: {prune_count}")
         if prune_count > 0:
-            layer = get_layer_by_name(random_pruned_model, layer_name)
-            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-                weights = [layer.weight.data.cpu().numpy()]
-                if layer.bias is not None:
-                    weights.append(layer.bias.data.cpu().numpy())
-                # For Hugging Face Conv layers
-            elif hasattr(layer, 'conv'):
-                weights = [layer.conv.weight.data.cpu().numpy()]
-                if layer.conv.bias is not None:
-                    weights.append(layer.conv.bias.data.cpu().numpy())
-            else:
-                print(
-                    f"Layer {layer_name} is not a supported layer type. Skipping...")
-                continue
-
+            actual_layer_name = layer_name.split('/')[-1]
+            layer = random_pruned_model.get_layer(actual_layer_name)
+            weights = layer.get_weights()
             # original_param_count = np.prod(weights[0].shape)
-            original_param_count = sum(weight.size for weight in weights)
-            num_weights = sum(weight.size for weight in weights)
+            original_param_count = layer.count_params()
+            num_weights = weights[0].size
 
             # Debugging statements
             print(
-                f"Layer '{layer_name}' has {num_weights} weights. Trying to prune {prune_count} weights.")
+                f"Layer '{actual_layer_name}' has {num_weights} weights. Trying to prune {prune_count} weights.")
 
             # Ensure that the number of weights to prune doesn't exceed the total
             num_to_prune = min(prune_count, num_weights)
             print(f"Num to prune: {num_to_prune}")
 
             # Randomly prune individual weights
-            pruned_weights = []
-            for weight in weights:
-                flattened_weight = weight.flatten()
-                prune_indices = np.random.choice(
-                    flattened_weight.size, num_to_prune, replace=False)
-                flattened_weight[prune_indices] = 0
-                pruned_weight = flattened_weight.reshape(weight.shape)
-                pruned_weights.append(pruned_weight)
+            pruned_weights = weights[0].flatten()
+            prune_indices = np.random.choice(
+                num_weights, num_to_prune, replace=False)
+            pruned_weights[prune_indices] = 0
 
             # Debugging statements
             print(
-                f"Pruned weights lengths: {[weight.size for weight in pruned_weights]}")
-            print(
-                f"Original weights lengths: {[weight.size for weight in weights]}")
+                f"Before reshaping, pruned weights shape: {pruned_weights.shape}")
+            print(f"Original weights shape: {weights[0].shape}")
 
-            if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-                layer.weight.data = torch.from_numpy(pruned_weights[0])
-                if layer.bias is not None:
-                    layer.bias.data = torch.from_numpy(pruned_weights[1])
-            elif hasattr(layer, 'conv'):
-                layer.conv.weight.data = torch.from_numpy(pruned_weights[0])
-                if layer.conv.bias is not None:
-                    layer.conv.bias.data = torch.from_numpy(pruned_weights[1])
+            # Reshape pruned weights back to original shape
+            pruned_weights = pruned_weights.reshape(
+                weights[0].shape)  # Highlighted line
+            # Highlighted line
+            assert pruned_weights.shape == weights[0].shape, "Reshaping error: Shapes do not match after pruning"
+
+            weights[0] = pruned_weights
+            layer.set_weights(weights)
 
             # Calculate the number of non-zero parameters after pruning
-            non_zero_params = sum(np.count_nonzero(weight)
-                                  for weight in pruned_weights)
+            non_zero_params = np.count_nonzero(pruned_weights)
 
             # Log pruning details
             log_pruning_details(random_csv_writer, guid, wavelet, level, threshold, 'random',
@@ -168,36 +140,9 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
     return layer_prune_counts
 
 
-def print_model_summary(model):
-    total_params = 0
-    print("Model Summary:")
-    print("Layer Name" + "\t" * 7 + "Output Shape" + "\t" * 5 + "Param #")
-    print("="*100)
-    for name, module in model.named_children():
-        if hasattr(module, 'weight') and hasattr(module.weight, 'size'):
-            layer_info = f"{name}\t" + \
-                str(module.weight.size()) + "\t" + f"{module.weight.numel()}"
-            total_params += module.weight.numel()
-            if hasattr(module, 'bias') and hasattr(module.bias, 'size'):
-                total_params += module.bias.numel()
-            print(layer_info)
-    print("="*100)
-    print(f"Total Params: {total_params}")
-
-
-def print_model_structure(model, depth=0):
-    indent = " " * (depth * 2)
-    for name, module in model.named_children():
-        print(f"{indent}{name} - {module.__class__.__name__}")
-        if list(module.children()):
-            print_model_structure(module, depth + 1)
-
-
 def main(argv):
     model = load_model(FLAGS.model_path, FLAGS.config_path)
-
-    # Recursively print the model structure
-    print_model_structure(model)
+    print("Pre-trained model loaded successfully.")
 
     # Append mode for the running experiment log
     csv_writer, running_log_file = setup_csv_writer(FLAGS.csv_path, mode='a')
@@ -205,7 +150,7 @@ def main(argv):
     guid = os.urandom(4).hex()
 
     # Create a new instance of the model for random pruning
-    random_pruning_model = copy.deepcopy(model)
+    random_pruning_model = load_model(FLAGS.model_path, FLAGS.config_path)
 
     # Perform DWT (Selective) pruning
     layer_prune_counts = selective_pruning(

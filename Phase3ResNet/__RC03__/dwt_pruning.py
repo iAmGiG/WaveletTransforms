@@ -1,7 +1,6 @@
 import pywt
 import numpy as np
-import torch
-import torch.nn as nn
+import tensorflow as tf
 from utils import log_pruning_details
 
 
@@ -33,38 +32,22 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
 
 
 def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
-    if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-        weights = [layer.weight.data.cpu().numpy()]
-        if layer.bias is not None:
-            weights.append(layer.bias.data.cpu().numpy())
-    elif hasattr(layer, 'conv'):  # For Hugging Face Conv layers
-        weights = [layer.conv.weight.data.cpu().numpy()]
-        if layer.conv.bias is not None:
-            weights.append(layer.conv.bias.data.cpu().numpy())
-    elif hasattr(layer, 'fc'):  # For Hugging Face Classifier layer
-        weights = [layer.fc.weight.data.cpu().numpy()]
-        if layer.fc.bias is not None:
-            weights.append(layer.fc.bias.data.cpu().numpy())
+    if hasattr(layer, 'kernel'):
+        weights = [layer.kernel.numpy()]
+    elif hasattr(layer, 'weights'):
+        weights = layer.get_weights()
     else:
         print(f"Layer {layer_name} is not a supported layer type. Skipping...")
         return 0
 
     pruned_weights, total_pruned_count = multi_resolution_analysis(
         weights, wavelet, level, threshold)
-
-    if isinstance(layer, nn.Conv2d) or isinstance(layer, nn.Linear):
-        layer.weight.data = torch.from_numpy(pruned_weights[0])
-        if layer.bias is not None:
-            layer.bias.data = torch.from_numpy(pruned_weights[1])
-    elif hasattr(layer, 'conv'):  # For Hugging Face Conv layers
-        layer.conv.weight.data = torch.from_numpy(pruned_weights[0])
-        if layer.conv.bias is not None:
-            layer.conv.bias.data = torch.from_numpy(pruned_weights[1])
-    elif hasattr(layer, 'fc'):  # For Hugging Face Classifier layer
-        layer.fc.weight.data = torch.from_numpy(pruned_weights[0])
-        if layer.fc.bias is not None:
-            layer.fc.bias.data = torch.from_numpy(pruned_weights[1])
-    print(f"Assigned pruned weights to layer {layer_name}")
+    if hasattr(layer, 'kernel'):
+        layer.kernel.assign(pruned_weights[0])
+        print(f"Assigned pruned weights to kernel of layer {layer_name}")
+    else:
+        layer.set_weights(pruned_weights)
+        print(f"Assigned pruned weights to layer {layer_name}")
 
     original_param_count = sum(weight.size for weight in weights)
     non_zero_params = original_param_count - total_pruned_count
@@ -73,33 +56,31 @@ def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, laye
     return total_pruned_count
 
 
-def recursive_prune(model, wavelet, level, threshold, csv_writer, guid, layer_name_prefix=""):
+def recursive_prune(layer, wavelet, level, threshold, csv_writer, guid, layer_name_prefix=""):
     layer_prune_counts = {}
     total_prune_count = 0
 
-    def inner_recursive_prune(module, layer_name_prefix):
+    def inner_recursive_prune(current_layer, layer_name_prefix):
         nonlocal total_prune_count
-        layer_name = f"{layer_name_prefix}/{module.__class__.__name__}"
-
-        if isinstance(module, nn.Sequential):
-            for sub_module in module:
-                inner_recursive_prune(sub_module, layer_name)
-        elif isinstance(module, nn.ModuleList):
-            for idx, sub_module in enumerate(module):
-                inner_recursive_prune(sub_module, f"{layer_name}.{idx}")
-        else:
+        full_layer_name = f"{layer_name_prefix}/{current_layer.name}"
+        if isinstance(current_layer, tf.keras.Model):
+            for sub_layer in current_layer.layers:
+                inner_recursive_prune(
+                    sub_layer, layer_name_prefix=full_layer_name)
+        elif isinstance(current_layer, tf.keras.layers.Layer):
             try:
                 layer_pruned_count = prune_layer_weights(
-                    module, wavelet, level, threshold, csv_writer, guid, layer_name)
+                    current_layer, wavelet, level, threshold, csv_writer, guid, full_layer_name
+                )
                 if layer_pruned_count > 0:
-                    layer_prune_counts[layer_name] = layer_pruned_count
+                    layer_prune_counts[full_layer_name] = layer_pruned_count
                 total_prune_count += layer_pruned_count
                 print(
-                    f"Layer {layer_name} pruned. Total pruned count: {layer_pruned_count}")
+                    f"Layer {full_layer_name} pruned. Total pruned count: {layer_pruned_count}")
             except Exception as e:
-                print(f"Error pruning layer {layer_name}: {e}")
+                print(f"Error pruning layer {full_layer_name}: {e}")
 
-    inner_recursive_prune(model, layer_name_prefix)
+    inner_recursive_prune(layer, layer_name_prefix)
     print(f"Completed DWT pruning on {len(layer_prune_counts)} layers.")
     return layer_prune_counts
 

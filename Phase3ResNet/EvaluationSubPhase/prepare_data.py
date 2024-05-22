@@ -2,11 +2,12 @@ from datasets import load_from_disk
 from transformers import AutoImageProcessor
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from PIL import Image
+from utility import ImageNetDataset
 
-# Load the dataset from disk
-dataset = load_from_disk('imagenet-1k-dataset')
+# Load the small test dataset from disk
+dataset = load_from_disk('imagenet-1k-small-test')
 
 # Load the processor for the ResNet model
 processor = AutoImageProcessor.from_pretrained('microsoft/resnet-18')
@@ -23,30 +24,14 @@ transform = Compose([
 
 
 def preprocess(example):
-    example['pixel_values'] = [transform(Image.open(
-        image).convert('RGB')) for image in example['image']]
+    # example['image'] is already a PIL Image
+    image = example['image'].convert('RGB')
+    example['pixel_values'] = transform(image)
     return example
 
 
-test_dataset = dataset['test'].map(
-    preprocess, batched=True, remove_columns=['image'])
-
-# Custom Dataset class
-
-
-class ImageNetDataset(Dataset):
-    def __init__(self, hf_dataset):
-        self.dataset = hf_dataset
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self, idx):
-        item = self.dataset[idx]
-        image = item['pixel_values']
-        label = item['label']
-        return image, label
-
+# Apply preprocessing to the test dataset
+test_dataset = dataset.map(preprocess, batched=False, remove_columns=['image'])
 
 # Create DataLoader
 test_loader = DataLoader(ImageNetDataset(test_dataset),

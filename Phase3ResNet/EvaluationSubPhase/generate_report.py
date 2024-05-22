@@ -1,4 +1,3 @@
-import pdfkit
 import os
 
 
@@ -16,20 +15,20 @@ def generate_report():
         
         <h2>Results</h2>
         <h3>Accuracy Comparison</h3>
-        <img src="accuracy_comparison.pdf" alt="Accuracy Comparison">
+        <img src="accuracy_comparison.png" alt="Accuracy Comparison">
         
         <h3>F1 Score Comparison</h3>
-        <img src="f1_score_comparison.pdf" alt="F1 Score Comparison">
+        <img src="f1_score_comparison.png" alt="F1 Score Comparison">
         
         <h3>Recall Comparison</h3>
-        <img src="recall_comparison.pdf" alt="Recall Comparison">
+        <img src="recall_comparison.png" alt="Recall Comparison">
         
         <h3>Sparsity Comparison</h3>
-        <img src="sparsity_comparison.pdf" alt="Sparsity Comparison">
+        <img src="sparsity_comparison.png" alt="Sparsity Comparison">
         
         <h3>Confusion Matrices</h3>
         <p>Original Model</p>
-        <img src="confusion_matrices/confusion_matrix_Original.pdf" alt="Confusion Matrix - Original">
+        <img src="confusion_matrices/confusion_matrix_Original.png" alt="Confusion Matrix - Original">
         
         <!-- Add more confusion matrices as needed -->
     </body>
@@ -41,8 +40,6 @@ def generate_report():
 
     with open('results/report.html', 'w') as f:
         f.write(html_report)
-
-    pdfkit.from_file('results/report.html', 'results/final_report.pdf')
 
 
 if __name__ == '__main__':

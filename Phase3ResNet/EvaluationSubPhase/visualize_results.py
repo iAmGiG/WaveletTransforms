@@ -14,22 +14,22 @@ def visualize_results():
     plt.figure(figsize=(14, 7))
     sns.barplot(x='Model', y='Accuracy', data=results_df)
     plt.title('Accuracy of Models')
-    plt.savefig('results/accuracy_comparison.pdf')
+    plt.savefig('results/accuracy_comparison.png')
 
     plt.figure(figsize=(14, 7))
     sns.barplot(x='Model', y='F1 Score', data=results_df)
     plt.title('F1 Score of Models')
-    plt.savefig('results/f1_score_comparison.pdf')
+    plt.savefig('results/f1_score_comparison.png')
 
     plt.figure(figsize=(14, 7))
     sns.barplot(x='Model', y='Recall', data=results_df)
     plt.title('Recall of Models')
-    plt.savefig('results/recall_comparison.pdf')
+    plt.savefig('results/recall_comparison.png')
 
     plt.figure(figsize=(14, 7))
     sns.barplot(x='Model', y='Sparsity', data=results_df)
     plt.title('Sparsity of Models')
-    plt.savefig('results/sparsity_comparison.pdf')
+    plt.savefig('results/sparsity_comparison.png')
 
 
 if __name__ == '__main__':

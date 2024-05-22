@@ -1,15 +1,13 @@
 import os
 import csv
-from transformers import TFAutoModelForImageClassification, AutoConfig
+from transformers import AutoModelForImageClassification, AutoConfig
+import torch
 
 
 def load_model(model_path, config_path):
-    """
-    Loads the model
-    """
     config = AutoConfig.from_pretrained(config_path)
-    model = TFAutoModelForImageClassification.from_pretrained(
-        model_path, config=config)
+    model = AutoModelForImageClassification.from_pretrained(model_path, config=config)
+    print("Pre-trained model loaded successfully.")
     return model
 
 
@@ -86,7 +84,7 @@ def log_pruning_details(csv_writer, guid, wavelet, level, threshold, phase, orig
 def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count, model_path):
     """
     Append details of the pruning experiment to the experiment log CSV file.
-    
+
     Args:
         file_path (str): Path to the experiment log CSV file.
         guid (str): Unique identifier for the pruning session.
@@ -101,7 +99,8 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
         file_path = os.path.normpath(file_path)
         file_exists = os.path.isfile(file_path)
         with open(file_path, mode='a', newline='') as file:
-            fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'Phase', 'Total Pruned Count', 'Model Path']
+            fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold',
+                          'Phase', 'Total Pruned Count', 'Model Path']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()

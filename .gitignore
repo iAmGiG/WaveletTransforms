@@ -151,3 +151,6 @@ Phase3ResNet/SavedModels
 Phase3ResNet/__OGPyTorchModel__
 Phase3ResNet/EvaluationSubPhase/imagenet-1k-dataset/
 Phase3ResNet/EvaluationSubPhase/directory details
+Phase3ResNet/EvaluationSubPhase/results/report.html
+Phase3ResNet/EvaluationSubPhase/imagenet-1k-small-test/
+Phase3ResNet/EvaluationSubPhase/test_loader.pth
