@@ -64,6 +64,9 @@ def log_pruning_details(csv_writer, guid, wavelet, level, threshold, phase, orig
         total_pruned_count (int): Total number of pruned weights.
         layer_name (str): Name of the layer being pruned.
     """
+    if not csv_writer or not layer_name:
+        return
+
     try:
         row = {
             'GUID': guid,
@@ -79,7 +82,6 @@ def log_pruning_details(csv_writer, guid, wavelet, level, threshold, phase, orig
         csv_writer.writerow(row)
     except Exception as e:
         print(f"Failed to log pruning details for layer {layer_name}: {e}")
-        raise
 
 
 def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count, model_path):
