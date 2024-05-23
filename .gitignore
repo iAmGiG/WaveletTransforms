@@ -154,3 +154,9 @@ Phase3ResNet/EvaluationSubPhase/directory details
 Phase3ResNet/EvaluationSubPhase/results/report.html
 Phase3ResNet/EvaluationSubPhase/imagenet-1k-small-test/
 Phase3ResNet/EvaluationSubPhase/test_loader.pth
+Phase3ResNet/EvaluationSubPhase_alpha/imagenet-1k-dataset/
+Phase3ResNet/EvaluationSubPhase_alpha/imagenet-1k-small-test/
+Phase3ResNet/EvaluationSubPhase_alpha/results/
+Phase3ResNet/EvaluationSubPhase_alpha/directory details
+Phase3ResNet/EvaluationSubPhase_alpha/test_loader.pth
+Phase3ResNet/EvaluationSubPhase_reduced/data/
