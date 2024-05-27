@@ -84,7 +84,7 @@ def log_pruning_details(csv_writer, guid, wavelet, level, threshold, phase, orig
         print(f"Failed to log pruning details for layer {layer_name}: {e}")
 
 
-def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count, model_path):
+def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, total_pruned_count, total_non_zero_params, model_path):
     """
     Append details of the pruning experiment to the experiment log CSV file.
 
@@ -96,14 +96,15 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
         threshold (float): Threshold value for pruning.
         phase (str): Pruning phase ('selective' or 'random').
         total_pruned_count (int): Total number of pruned weights.
+        total_non_zero_params (int): Total number of non-zero parameters after pruning.
         model_path (str): Path to the saved pruned model.
     """
     try:
         file_path = os.path.normpath(file_path)
         file_exists = os.path.isfile(file_path)
         with open(file_path, mode='a', newline='') as file:
-            fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold',
-                          'Phase', 'Total Pruned Count', 'Model Path']
+            fieldnames = ['GUID', 'Wavelet', 'Level', 'Threshold', 'Phase',
+                          'Total Pruned Count', 'Total Non-Zero Params', 'Model Path']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             if not file_exists:
                 writer.writeheader()
@@ -114,11 +115,11 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
                 'Threshold': threshold,
                 'Phase': phase,
                 'Total Pruned Count': total_pruned_count,
-                'Model Path': os.path.normpath(model_path)
+                'Total Non-Zero Params': total_non_zero_params,
+                'Model Path': model_path
             })
     except Exception as e:
         print(f"Failed to append to experiment log: {e}")
-        raise
 
 
 def check_and_set_pruned_instance_path(pruned_instance):

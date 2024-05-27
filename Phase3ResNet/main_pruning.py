@@ -48,6 +48,7 @@ def get_layer(model, layer_name):
 
 def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_pruning_model):
     total_pruned_count = 0
+    total_non_zero_params = 0
     random_pruned_dir = check_and_set_pruned_instance_path(
         f"{wavelet}_threshold-{threshold}_level-{level}_guid-{guid[:4]}/random_pruned")
     random_log_path = os.path.join(random_pruned_dir, 'log.csv')
@@ -68,19 +69,22 @@ def random_pruning(layer_prune_counts, guid, wavelet, level, threshold, random_p
                 pruned_weight = flattened_weight.reshape(weight.shape)
                 pruned_weights.append(pruned_weight)
 
+            original_param_count = sum(weight.numel() for weight in weights)
             non_zero_params = sum(np.count_nonzero(weight)
                                   for weight in pruned_weights)
+            total_non_zero_params += non_zero_params
             log_pruning_details(random_csv_writer, guid, wavelet, level, threshold, 'random',
-                                sum(weight.numel() for weight in weights), non_zero_params, prune_count, layer_name)
-            total_pruned_count += prune_count
+                                original_param_count, non_zero_params, prune_count, layer_name)
 
             # Update the layer weights with the pruned weights
             for param, pruned_weight in zip(layer.parameters(), pruned_weights):
                 param.data = torch.from_numpy(pruned_weight)
 
+            total_pruned_count += prune_count
+
     save_model(random_pruning_model, random_pruned_dir)
-    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, wavelet,
-                             level, threshold, 'random', total_pruned_count, random_pruned_dir)
+    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, FLAGS.wavelet,
+                             FLAGS.level, FLAGS.threshold, 'random', total_pruned_count, total_non_zero_params, random_pruned_dir)
     random_log_file.close()
     print("Random pruning completed.")
 
@@ -89,42 +93,32 @@ def selective_pruning(original_model, wavelet, level, threshold, csv_writer, gui
     selective_pruned_model = copy.deepcopy(original_model)
     layer_prune_counts = {}
 
-    selective_pruned_model, layer_prune_counts = wavelet_pruning(
-        selective_pruned_model, wavelet, level, threshold, csv_writer, guid)
-
     selective_pruned_dir = check_and_set_pruned_instance_path(
         f"{wavelet}_threshold-{threshold}_level-{level}_guid-{guid[:4]}/selective_pruned")
-    save_model(selective_pruned_model, selective_pruned_dir)
-
-    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, wavelet, level,
-                             threshold, 'selective', sum(layer_prune_counts.values()), selective_pruned_dir)
-
     selective_log_path = os.path.join(selective_pruned_dir, 'log.csv')
     print(
         f"Debug: Setting up CSV writer at {selective_log_path}, Directory exists: {os.path.isdir(selective_pruned_dir)}")
     selective_csv_writer, selective_log_file = setup_csv_writer(
         os.path.normpath(selective_log_path), mode='w')
 
-    for layer_name, prune_count in layer_prune_counts.items():
-        print(f"Debug: Attempting to retrieve and log layer: {layer_name}")
-        layer = get_layer(selective_pruned_model, layer_name)
-        if layer and isinstance(layer, nn.Conv2d):
-            original_param_count = sum(param.numel()
-                                       for param in layer.parameters())
-            non_zero_params = sum(np.count_nonzero(
-                param.data.cpu().numpy()) for param in layer.parameters())
+    selective_pruned_model, layer_prune_counts = wavelet_pruning(
+        selective_pruned_model, wavelet, level, threshold, selective_csv_writer, guid)
 
-            print(f"Debug: Logging details for layer {layer_name}")
-            log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold, 'selective',
-                                original_param_count, non_zero_params, prune_count, layer_name)
-        else:
-            print(
-                f"Debug: Could not find layer '{layer_name}' in the model or it is not a Conv2d layer.")
+    total_pruned_count = sum(layer_prune_counts.values())
+    total_non_zero_params = sum(sum(np.count_nonzero(param.data.cpu().numpy()) for param in layer.parameters())
+                                for layer_name, layer in selective_pruned_model.named_modules()
+                                if isinstance(layer, nn.Conv2d))
+
+    save_model(selective_pruned_model, selective_pruned_dir)
+    # Inside selective_pruning
+    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, FLAGS.wavelet, FLAGS.level,
+                             FLAGS.threshold, 'selective', total_pruned_count, total_non_zero_params, selective_pruned_dir)
 
     print(f"Debug: Closing selective log file at {selective_log_path}")
     selective_log_file.close()
     print(
         f"Debug: Selective pruning completed and model saved to {selective_pruned_dir}")
+
     return layer_prune_counts
 
     # Print the model structure for diagnostics - USE THE utils.py import for the print structure.
@@ -141,7 +135,7 @@ def main(argv):
     guid = os.urandom(4).hex()
 
     # Create a new instance of the model for random pruning
-    random_pruning_model = copy.deepcopy
+    random_pruning_model = copy.deepcopy(model)
 
     # Perform DWT (Selective) pruning
     layer_prune_counts = selective_pruning(
