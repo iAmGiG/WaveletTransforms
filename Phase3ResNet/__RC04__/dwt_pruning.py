@@ -21,7 +21,7 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
                 coeff_arr[i] = 0
         pruned_coeffs = pywt.array_to_coeffs(
             coeff_arr, coeff_slices, output_format='wavedec')
-        pruned_weight = pywt.warerec(
+        pruned_weight = pywt.waverec(
             pruned_coeffs, wavelet, mode='periodization')
         if pruned_weight.size > flattened_weight.size:
             pruned_weight = pruned_weight[:flattened_weight.size]
@@ -33,25 +33,48 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
 
 
 def prune_layer_weights(layer, wavelet, level, threshold, csv_writer, guid, layer_name):
-    if isinstance(layer, nn.Conv2d):
+    if isinstance(layer, (nn.Conv2d, nn.Linear)):
         weights = [layer.weight.data.cpu().numpy()]
         if layer.bias is not None:
             weights.append(layer.bias.data.cpu().numpy())
+    elif hasattr(layer, 'conv'):  # For Hugging Face Conv layers
+        weights = [layer.conv.weight.data.cpu().numpy()]
+        if layer.conv.bias is not None:
+            weights.append(layer.conv.bias.data.cpu().numpy())
+    elif hasattr(layer, 'fc'):  # For Hugging Face Classifier layer
+        weights = [layer.fc.weight.data.cpu().numpy()]
+        if layer.fc.bias is not None:
+            weights.append(layer.fc.bias.data.cpu().numpy())
+    elif isinstance(layer, nn.Module):  # For the root module (ResNetForImageClassification)
+        weights = []
+        for name, param in layer.named_parameters():
+            if 'weight' in name:
+                weights.append(param.data.cpu().numpy())
     else:
-        print(f"Skipping layer {layer_name} as it is not a Conv2d layer.")
+        print(f"Layer {layer_name} is not a supported layer type. Skipping...")
         return 0
 
     pruned_weights, total_pruned_count = multi_resolution_analysis(
         weights, wavelet, level, threshold)
 
-    # Leave filters intact by pruning only the non-channel dimensions
-    for i, weight in enumerate(pruned_weights):
-        pruned_weights[i] = weight.reshape(weight.shape[0], -1)
-
-    layer.weight.data = torch.from_numpy(
-        pruned_weights[0].reshape(layer.weight.data.shape))
-    if layer.bias is not None:
-        layer.bias.data = torch.from_numpy(pruned_weights[1])
+    if isinstance(layer, (nn.Conv2d, nn.Linear)):
+        layer.weight.data = torch.from_numpy(pruned_weights[0])
+        if layer.bias is not None:
+            layer.bias.data = torch.from_numpy(pruned_weights[1])
+    elif hasattr(layer, 'conv'):  # For Hugging Face Conv layers
+        layer.conv.weight.data = torch.from_numpy(pruned_weights[0])
+        if layer.conv.bias is not None:
+            layer.conv.bias.data = torch.from_numpy(pruned_weights[1])
+    elif hasattr(layer, 'fc'):  # For Hugging Face Classifier layer
+        layer.fc.weight.data = torch.from_numpy(pruned_weights[0])
+        if layer.fc.bias is not None:
+            layer.fc.bias.data = torch.from_numpy(pruned_weights[1])
+    elif isinstance(layer, nn.Module):  # For the root module (ResNetForImageClassification)
+        idx = 0
+        for name, param in layer.named_parameters():
+            if 'weight' in name:
+                param.data = torch.from_numpy(pruned_weights[idx])
+                idx += 1
 
     print(f"Assigned pruned weights to layer {layer_name}")
 
@@ -78,14 +101,13 @@ def recursive_prune(model, wavelet, level, threshold, csv_writer, guid, layer_na
                 inner_recursive_prune(sub_module, f"{layer_name}.{idx}")
         else:
             try:
-                if not isinstance(module, nn.Linear):  # Skip the classifier layer
-                    layer_pruned_count = prune_layer_weights(
-                        module, wavelet, level, threshold, csv_writer, guid, layer_name)
-                    if layer_pruned_count > 0:
-                        layer_prune_counts[layer_name] = layer_pruned_count
-                    total_prune_count += layer_pruned_count
-                    print(
-                        f"Layer {layer_name} pruned. Total pruned count: {layer_pruned_count}")
+                layer_pruned_count = prune_layer_weights(
+                    module, wavelet, level, threshold, csv_writer, guid, layer_name)
+                if layer_pruned_count > 0:
+                    layer_prune_counts[layer_name] = layer_pruned_count
+                total_prune_count += layer_pruned_count
+                print(
+                    f"Layer {layer_name} pruned. Total pruned count: {layer_pruned_count}")
             except Exception as e:
                 print(f"Error pruning layer {layer_name}: {e}")
 
