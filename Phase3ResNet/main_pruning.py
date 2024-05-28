@@ -56,6 +56,20 @@ def get_layer(model, layer_name):
 
 
 def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold):
+    """
+    Apply random pruning to the model based on the selective pruning log.
+
+    Args:
+        selective_pruning_log (str): Path to the selective pruning log file.
+        model (torch.nn.Module): The model to be pruned.
+        guid (str): Unique identifier for the pruning session.
+        wavelet (str): Wavelet type to be used.
+        level (int): Level of wavelet decomposition.
+        threshold (float): Threshold value for pruning.
+
+    Returns:
+        None
+    """
     total_pruned_count = 0
     total_non_zero_params = 0
     random_pruned_dir = check_and_set_pruned_instance_path(
@@ -106,69 +120,31 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
     print("Random pruning completed.")
 
 
-def selective_pruning(original_model, wavelet, level, threshold, guid):
-    selective_pruned_model = copy.deepcopy(original_model)
-    selective_pruned_dir = check_and_set_pruned_instance_path(
-        f"{wavelet}_threshold-{threshold}_level-{level}_guid-{guid[:4]}/selective_pruned")
-    selective_log_path = os.path.join(selective_pruned_dir, 'log.csv')
-    selective_csv_writer, selective_log_file = setup_csv_writer(
-        os.path.normpath(selective_log_path), mode='w')
-
-    # Perform the wavelet pruning
-    selective_pruned_model, layer_prune_counts = wavelet_pruning(
-        selective_pruned_model, wavelet, level, threshold, selective_csv_writer, guid)
-
-    total_non_zero_params = 0  # Initialize total non-zero parameters
-    for layer_name, prune_count in layer_prune_counts.items():
-        layer = get_layer(selective_pruned_model, layer_name)
-        if layer:
-            original_param_count = sum(param.numel()
-                                       for param in layer.parameters())
-            non_zero_params = sum(np.count_nonzero(
-                param.data.cpu().numpy()) for param in layer.parameters())
-            total_non_zero_params += non_zero_params  # Accumulate non-zero parameters
-            log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold, 'selective',
-                                original_param_count, non_zero_params, prune_count, layer_name)
-
-    total_pruned_count = sum(layer_prune_counts.values())
-
-    save_model(selective_pruned_model, selective_pruned_dir)
-    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, wavelet, level,
-                             threshold, 'selective', total_pruned_count, total_non_zero_params, selective_pruned_dir)
-    selective_log_file.close()
-    print(
-        f"Selective pruning completed and model saved to {selective_pruned_dir}")
-    selective_pruning_log_path = os.path.join(selective_pruned_dir, 'log.csv')
-    return layer_prune_counts, selective_pruning_log_path
-
-    # Print the model structure for diagnostics - USE THE utils.py import for the print structure.
-    # print("Model Structure:")
-    # print_model_structure(selective_pruned_model)
-
-
 def main(argv):
-    model = load_model(FLAGS.model_path, FLAGS.config_path)
+    """
+    Apply random pruning to the model based on the selective pruning log.
 
-    # Append mode for the running experiment log
-    # csv_writer, running_log_file = setup_csv_writer(FLAGS.csv_path, mode='a')
+    Args:
+        selective_pruning_log (str): Path to the selective pruning log file.
+        model (torch.nn.Module): The model to be pruned.
+        guid (str): Unique identifier for the pruning session.
+        wavelet (str): Wavelet type to be used.
+        level (int): Level of wavelet decomposition.
+        threshold (float): Threshold value for pruning.
+
+    Returns:
+        None
+    """
+    model = load_model(FLAGS.model_path, FLAGS.config_path)
 
     guid = os.urandom(4).hex()
 
     # Create a new instance of the model for random pruning
     random_pruning_model = copy.deepcopy(model)
 
-    # layer_prune_counts, selective_pruning_log_path = selective_pruning(
-    #     model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, guid)
-
-    # # Perform Random pruning using the layer_prune_counts obtained from DWT pruning
-    # random_pruning(selective_pruning_log_path, random_pruning_model, guid, FLAGS.wavelet,
-    #                FLAGS.level, FLAGS.threshold)
-
-    # running_log_file.close()
-
     # Selective Pruning Phase
     selective_log_path = wavelet_pruning(
-        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, guid)
+        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
     print(f"Selective pruning completed. Log saved at {selective_log_path}")
 
     # Random Pruning Phase

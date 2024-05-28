@@ -243,3 +243,7 @@ c14b9bdd,haar,0,0.01,random,5074484,6092428,SavedModels\haar_threshold-0.0100_le
 92ec8a50,haar,1,0.0236,selective,0,0,SavedModels\haar_threshold-0.0236_level-1_guid-92ec/selective_pruned
 92ec8a50,haar,1,0.0236,random,0,0,SavedModels\haar_threshold-0.0236_level-1_guid-92ec/random_pruned
 2bdc106b,haar,1,0.0236,random,7608707,3558205,SavedModels\haar_threshold-0.0236_level-1_guid-2bdc/random_pruned
+7cfccb4f,haar,1,0.0236,selective,7657573,513000,SavedModels\haar_threshold-0.0236_level-1_guid-7cfc/selective_pruned
+7cfccb4f,haar,1,0.0236,random,7608707,3558205,SavedModels\haar_threshold-0.0236_level-1_guid-7cfc/random_pruned
+4786ae20,haar,1,0.0236,selective,7608707,2359296,SavedModels\haar_threshold-0.0236_level-1_guid-4786/selective_pruned
+4786ae20,haar,1,0.0236,random,7608707,3558205,SavedModels\haar_threshold-0.0236_level-1_guid-4786/random_pruned
