@@ -3,8 +3,8 @@ import numpy as np
 import torch
 from transformers import AutoImageProcessor, AutoModelForImageClassification, AutoConfig
 from safetensors.torch import load_file as load_safetensors
-from datasets import load_from_disk, DatasetDict, Dataset
-from torch.utils.data import DataLoader
+from datasets import load_from_disk, Dataset
+from torch.utils.data import DataLoader, Subset
 from PIL import Image
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
@@ -35,8 +35,8 @@ def evaluate_model(model, dataloader):
     all_predictions = []
     with torch.no_grad():
         for batch in dataloader:
-            inputs = batch['pixel_values']
-            labels = batch['labels']
+            inputs = batch['pixel_values'].to(model.device)
+            labels = batch['labels'].to(model.device)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.logits, 1)
             total += labels.size(0)
@@ -77,18 +77,26 @@ def save_metrics_to_txt(accuracy, f1, recall):
         file.write(f"Recall: {recall:.4f}\n")
 
 
-def preprocess(batch, image_processor):
-    images = [image_processor(image.convert("RGB"), return_tensors='pt')[
-        'pixel_values'] for image in batch['image']]
-    pixel_values = torch.cat(images, dim=0)
-    return {'pixel_values': pixel_values, 'labels': batch['label']}
+def preprocess_function(batch):
+    image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-18")
+    images = [image.convert("RGB") for image in batch['image']]
+    pixel_values = [image_processor(image, return_tensors='pt')[
+        'pixel_values'].squeeze(0) for image in images]
+    return {'pixel_values': pixel_values, 'labels': torch.tensor(batch['label'])}
+
+
+def collate_fn(batch):
+    pixel_values = torch.stack(
+        [torch.stack(item['pixel_values']) for item in batch])
+    labels = torch.tensor([item['labels'] for item in batch])
+    return {'pixel_values': pixel_values, 'labels': labels}
 
 
 def main():
     # Paths to directories
     original_model_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\__OGPyTorchModel__"
     dataset_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\imagenet-1k-dataset"
-    cache_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\cache"
+    cache_file = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\cache\\validation_dataset"
 
     # Load the dataset
     print("Loading dataset from disk...")
@@ -96,23 +104,12 @@ def main():
     print("Dataset loaded successfully.")
 
     # Ensure the dataset is in the correct format
-    train_dataset = dataset['train']
     validation_dataset = dataset['validation']
-    test_dataset = dataset['test']
 
-    print("Train dataset size:", len(train_dataset))
     print("Validation dataset size:", len(validation_dataset))
-    print("Test dataset size:", len(test_dataset))
-
-    image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-18")
 
     # Apply preprocessing and cache
-    def preprocess_function(batch):
-        return preprocess(batch, image_processor)
-
     print("Applying preprocessing to the dataset...")
-    cache_file = os.path.join(cache_dir, "validation_dataset.arrow")
-
     if os.path.exists(cache_file):
         print("Loading cached dataset...")
         validation_dataset = Dataset.load_from_disk(cache_file)
@@ -123,13 +120,15 @@ def main():
         validation_dataset.save_to_disk(cache_file)
 
     original_model = load_model(original_model_dir, 'bin')
+    original_model.to('cpu')  # Ensure the model is on the CPU
 
     # Use a very small subset of the validation dataset for quicker evaluation
     subset_indices = np.random.choice(
         len(validation_dataset), size=200, replace=False)
     subset_dataset = validation_dataset.select(subset_indices)
 
-    dataloader = DataLoader(subset_dataset, batch_size=32, shuffle=False)
+    dataloader = DataLoader(subset_dataset, batch_size=32,
+                            shuffle=False, collate_fn=collate_fn)
 
     accuracy, f1, recall, cm = evaluate_model(original_model, dataloader)
 
