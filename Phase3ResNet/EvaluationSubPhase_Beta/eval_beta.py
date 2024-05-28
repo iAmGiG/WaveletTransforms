@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from transformers import AutoImageProcessor, AutoModelForImageClassification, AutoConfig
 from safetensors.torch import load_file as load_safetensors
-from datasets import load_from_disk
+from datasets import load_from_disk, DatasetDict, Dataset
 from torch.utils.data import DataLoader
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -77,33 +77,59 @@ def save_metrics_to_txt(accuracy, f1, recall):
         file.write(f"Recall: {recall:.4f}\n")
 
 
+def preprocess(batch, image_processor):
+    images = [image_processor(image.convert("RGB"), return_tensors='pt')[
+        'pixel_values'] for image in batch['image']]
+    pixel_values = torch.cat(images, dim=0)
+    return {'pixel_values': pixel_values, 'labels': batch['label']}
+
+
 def main():
-    original_model_dir = os.path.abspath(
-        os.path.join('..', '__OGPyTorchModel__'))
-    dataset_dir = os.path.abspath(os.path.join('imagenet-1k-dataset'))
+    # Paths to directories
+    original_model_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\__OGPyTorchModel__"
+    dataset_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\imagenet-1k-dataset"
+    cache_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\cache"
 
-    print(f"Original model directory: {original_model_dir}")
-    print(f"Dataset directory: {dataset_dir}")
-
-    if not os.path.exists(dataset_dir):
-        raise FileNotFoundError(
-            f"Dataset directory {dataset_dir} does not exist.")
-
-    original_model = load_model(original_model_dir, 'bin')
+    # Load the dataset
+    print("Loading dataset from disk...")
     dataset = load_from_disk(dataset_dir)
+    print("Dataset loaded successfully.")
 
-    print(dataset)  # Check the structure to find the correct field name
+    # Ensure the dataset is in the correct format
+    train_dataset = dataset['train']
+    validation_dataset = dataset['validation']
+    test_dataset = dataset['test']
+
+    print("Train dataset size:", len(train_dataset))
+    print("Validation dataset size:", len(validation_dataset))
+    print("Test dataset size:", len(test_dataset))
 
     image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-18")
 
-    def preprocess(batch):
-        images = [image_processor(image, return_tensors='pt')[
-            'pixel_values'] for image in batch['image']]
-        return {'pixel_values': torch.stack(images).squeeze(1), 'labels': batch['label']}
+    # Apply preprocessing and cache
+    def preprocess_function(batch):
+        return preprocess(batch, image_processor)
 
-    dataset = dataset.map(preprocess, batched=True)
-    dataloader = DataLoader(
-        dataset['validation'], batch_size=32, shuffle=False)
+    print("Applying preprocessing to the dataset...")
+    cache_file = os.path.join(cache_dir, "validation_dataset.arrow")
+
+    if os.path.exists(cache_file):
+        print("Loading cached dataset...")
+        validation_dataset = Dataset.load_from_disk(cache_file)
+    else:
+        print("Processing and caching the dataset...")
+        validation_dataset = validation_dataset.map(
+            preprocess_function, batched=True, remove_columns=["image"])
+        validation_dataset.save_to_disk(cache_file)
+
+    original_model = load_model(original_model_dir, 'bin')
+
+    # Use a very small subset of the validation dataset for quicker evaluation
+    subset_indices = np.random.choice(
+        len(validation_dataset), size=200, replace=False)
+    subset_dataset = validation_dataset.select(subset_indices)
+
+    dataloader = DataLoader(subset_dataset, batch_size=32, shuffle=False)
 
     accuracy, f1, recall, cm = evaluate_model(original_model, dataloader)
 
