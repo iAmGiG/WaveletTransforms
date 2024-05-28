@@ -23,12 +23,12 @@ flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
-flags.DEFINE_enum('wavelet', 'haar', ['haar', 'db1', 'db2', 'coif1', 'bior1.3',
+flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3',
                   'rbio1.3', 'sym2', 'mexh', 'morl'], 'Type of wavelet to use for DWT.')
 flags.DEFINE_integer(
-    'level', 1, 'Level of decomposition for the wavelet transform')
+    'level', 0, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.0236, 'Threshold value for pruning wavelet coefficients')
+    'threshold', 0.0001, 'Threshold value for pruning wavelet coefficients')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 

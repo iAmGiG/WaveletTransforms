@@ -247,3 +247,13 @@ c14b9bdd,haar,0,0.01,random,5074484,6092428,SavedModels\haar_threshold-0.0100_le
 7cfccb4f,haar,1,0.0236,random,7608707,3558205,SavedModels\haar_threshold-0.0236_level-1_guid-7cfc/random_pruned
 4786ae20,haar,1,0.0236,selective,7608707,2359296,SavedModels\haar_threshold-0.0236_level-1_guid-4786/selective_pruned
 4786ae20,haar,1,0.0236,random,7608707,3558205,SavedModels\haar_threshold-0.0236_level-1_guid-4786/random_pruned
+b2cfd347,haar,1,0.01,selective,2892963,2359296,SavedModels\haar_threshold-0.01_level-1_guid-b2cf/selective_pruned
+b2cfd347,haar,1,0.01,random,2892963,8273949,SavedModels\haar_threshold-0.01_level-1_guid-b2cf/random_pruned
+114bdcaa,haar,3,0.001,selective,2785,2359296,SavedModels\haar_threshold-0.001_level-3_guid-114b/selective_pruned
+114bdcaa,haar,3,0.001,random,2785,11164127,SavedModels\haar_threshold-0.001_level-3_guid-114b/random_pruned
+b0e08a89,haar,0,0.001,selective,0,2359296,SavedModels\haar_threshold-0.001_level-0_guid-b0e0/selective_pruned
+b0e08a89,haar,0,0.001,random,0,11166912,SavedModels\haar_threshold-0.001_level-0_guid-b0e0/random_pruned
+8b15e1d8,db1,0,0.001,selective,0,2359296,SavedModels\db1_threshold-0.001_level-0_guid-8b15/selective_pruned
+8b15e1d8,db1,0,0.001,random,0,11166912,SavedModels\db1_threshold-0.001_level-0_guid-8b15/random_pruned
+5c267543,rbio1.3,0,0.0001,selective,0,2359296,SavedModels\rbio1.3_threshold-0.0001_level-0_guid-5c26/selective_pruned
+5c267543,rbio1.3,0,0.0001,random,0,11166912,SavedModels\rbio1.3_threshold-0.0001_level-0_guid-5c26/random_pruned

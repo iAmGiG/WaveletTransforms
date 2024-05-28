@@ -15,9 +15,9 @@ import logging
 
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string('model_dir', 'C:/Users/gigac/Documents/Projects/WaveletTransforms/Phase3ResNet/SavedModels/haar_threshold-0.786_level-1_guid-6bf8',
+flags.DEFINE_string('model_dir', None,
                     'Directory where pruned models are stored')
-flags.DEFINE_string('eval_dir', 'C:/Users/gigac/Documents/Projects/WaveletTransforms/Phase3ResNet/EvaluationSubPhase_reduced',
+flags.DEFINE_string('eval_dir', 'EvaluationSubPhase_reduced',
                     'Directory where evaluation scripts are stored')
 flags.DEFINE_string('test_data_dir', './data',
                     'Directory where test data is stored')
@@ -38,6 +38,14 @@ def setup_logging(output_log):
                         level=logging.INFO, format='%(message)s')
 
 # Load the pruned models
+
+
+def load_model_classic(model_path, config_path):
+    config = AutoConfig.from_pretrained(config_path)
+    model = AutoModelForImageClassification.from_pretrained(
+        model_path, config=config)
+    print("Pre-trained model loaded successfully.")
+    return model
 
 
 def load_model(model_dir):
@@ -192,18 +200,22 @@ def save_results_to_pdf(results, pdf_path, class_names, dataset, batch_size):
 
 
 def main(argv):
-    del argv  # Unused
-
-    model_dir = FLAGS.model_dir
+    # model_dir = FLAGS.model_dir
+    model_dir = r"C:\Users\gigac\Documents\Projects\WaveletTransforms\Phase3ResNet\__OGPyTorchModel__\pytorch_model.bin"
     output_pdf = os.path.join(model_dir, 'evaluation_results.pdf')
     output_log = os.path.join(model_dir, 'evaluation_log.txt')
 
     setup_logging(output_log)
 
-    selective_pruned_model = load_model(os.path.normpath(
-        os.path.join(model_dir, 'selective_pruned')))
-    random_pruned_model = load_model(os.path.normpath(
-        os.path.join(model_dir, 'random_pruned')))
+    # selective_pruned_model = load_model(os.path.normpath(
+    #     os.path.join(model_dir, 'selective_pruned')))
+    # random_pruned_model = load_model(os.path.normpath(
+    #     os.path.join(model_dir, 'random_pruned')))
+
+    selective_pruned_model = load_model_classic(
+        model_path=model_dir, config_path=r"C:\Users\gigac\Documents\Projects\WaveletTransforms\Phase3ResNet\__OGPyTorchModel__\config.json")
+    random_pruned_model = load_model_classic(
+        model_path=model_dir, config_path=r"C:\Users\gigac\Documents\Projects\WaveletTransforms\Phase3ResNet\__OGPyTorchModel__\config.json")
 
     selective_pruned_model.eval()
     random_pruned_model.eval()
