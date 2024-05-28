@@ -99,6 +99,10 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
         total_non_zero_params (int): Total number of non-zero parameters after pruning.
         model_path (str): Path to the saved pruned model.
     """
+    if not file_path:
+        print("Error: Invalid file path provided.")
+        return
+
     try:
         file_path = os.path.normpath(file_path)
         file_exists = os.path.isfile(file_path)
@@ -118,8 +122,10 @@ def append_to_experiment_log(file_path, guid, wavelet, level, threshold, phase, 
                 'Total Non-Zero Params': total_non_zero_params,
                 'Model Path': model_path
             })
+    except (FileNotFoundError, PermissionError) as e:
+        print(f"Error: Failed to append to experiment log: {e}")
     except Exception as e:
-        print(f"Failed to append to experiment log: {e}")
+        print(f"Error: Failed to append to experiment log: {e}")
 
 
 def check_and_set_pruned_instance_path(pruned_instance):
