@@ -162,3 +162,5 @@ Phase3ResNet/EvaluationSubPhase_alpha/test_loader.pth
 Phase3ResNet/EvaluationSubPhase_reduced/data/
 Phase3ResNet/EvaluationSubPhase_Beta/imagenet-1k-dataset/
 Phase3ResNet/EvaluationSubPhase_Beta/cache/
+Phase3ResNet/EvaluationSubPhase_Beta/data/
+Phase3ResNet/EvaluationSubPhase_Beta/evaluation_metrics.txt

@@ -1,26 +1,27 @@
 import os
-import numpy as np
 import torch
-import datasets
+import torchvision
+import torchvision.transforms as transforms
 from transformers import AutoImageProcessor, AutoModelForImageClassification, AutoConfig
 from safetensors.torch import load_file as load_safetensors
-from datasets import load_from_disk, DatasetDict
-from torch.utils.data import DataLoader, Subset
-from PIL import Image
+from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
-import torch
-from transformers import AutoImageProcessor
 
-# Initialize the image processor
-image_processor = AutoImageProcessor.from_pretrained("microsoft/resnet-18")
+# Load CIFAR-10 dataset with proper transformations
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),  # Resize to match ResNet input size
+    transforms.ToTensor(),
+    # ImageNet normalization
+    transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+])
 
+validation_dataset = torchvision.datasets.CIFAR10(
+    root='./data', train=False, download=True, transform=transform)
+validation_loader = DataLoader(
+    validation_dataset, batch_size=32, shuffle=False)
 
-def preprocess_function(batch):
-    images = [image.convert("RGB") for image in batch['image']]
-    pixel_values = torch.stack([image_processor(image, return_tensors='pt')[
-                               'pixel_values'].squeeze(0) for image in images])
-    return {'pixel_values': pixel_values, 'labels': torch.tensor(batch['label'])}
+# Function to load the model
 
 
 def load_model(model_dir, model_type='bin'):
@@ -39,6 +40,8 @@ def load_model(model_dir, model_type='bin'):
     model.load_state_dict(model_weights)
     return model
 
+# Function to evaluate the model
+
 
 def evaluate_model(model, dataloader):
     model.eval()
@@ -48,8 +51,11 @@ def evaluate_model(model, dataloader):
     all_predictions = []
     with torch.no_grad():
         for batch in dataloader:
-            inputs = batch['pixel_values'].to(model.device)
-            labels = batch['labels'].to(model.device)
+            inputs, labels = batch
+            print(
+                f"Inputs shape: {inputs.shape}, Labels shape: {labels.shape}")
+            inputs = inputs.to(model.device)
+            labels = labels.to(model.device)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.logits, 1)
             total += labels.size(0)
@@ -57,10 +63,14 @@ def evaluate_model(model, dataloader):
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
     accuracy = accuracy_score(all_labels, all_predictions)
-    f1 = f1_score(all_labels, all_predictions, average='weighted')
-    recall = recall_score(all_labels, all_predictions, average='weighted')
+    f1 = f1_score(all_labels, all_predictions,
+                  average='weighted', zero_division=1)
+    recall = recall_score(all_labels, all_predictions,
+                          average='weighted', zero_division=1)
     cm = confusion_matrix(all_labels, all_predictions)
     return accuracy, f1, recall, cm
+
+# Function to save metrics to PDF
 
 
 def save_metrics_to_pdf(accuracy, f1, recall, cm):
@@ -82,6 +92,8 @@ def save_metrics_to_pdf(accuracy, f1, recall, cm):
     plt.tight_layout()
     plt.savefig("evaluation_metrics.pdf")
 
+# Function to save metrics to TXT
+
 
 def save_metrics_to_txt(accuracy, f1, recall):
     with open("evaluation_metrics.txt", "w") as file:
@@ -91,43 +103,18 @@ def save_metrics_to_txt(accuracy, f1, recall):
 
 
 def main():
-    # Paths to directories
     original_model_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\__OGPyTorchModel__"
-    dataset_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\imagenet-1k-dataset"
-    cache_file = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\EvaluationSubPhase_Beta\\cache\\validation_dataset"
 
-    # Load the dataset
-    print("Loading dataset from disk...")
-    dataset = load_from_disk(dataset_dir)
-    print("Dataset loaded successfully.")
-
-    # Ensure the dataset is in the correct format
-    validation_dataset = dataset['validation']
-
-    print("Validation dataset size:", len(validation_dataset))
-
-    # Apply preprocessing and cache
-    print("Applying preprocessing to the dataset...")
-    if os.path.exists(cache_file):
-        print("Loading cached dataset...")
-        validation_dataset = DatasetDict.load_from_disk(cache_file)
-    else:
-        print("Processing and caching the dataset...")
-        validation_dataset = validation_dataset.map(
-            preprocess_function, batched=True, remove_columns=["image"])
-        validation_dataset.save_to_disk(cache_file)
-
+    # Load the model
     original_model = load_model(original_model_dir, 'bin')
-    original_model.to('cpu')  # Ensure the model is on the CPU
+    original_model.to('cpu')  # Assuming you're running on CPU
 
-    # Use a very small subset of the validation dataset for quicker evaluation
-    subset_indices = np.random.choice(
-        len(validation_dataset), size=200, replace=False)
-    subset_dataset = validation_dataset.select(subset_indices)
+    # Verify model structure
+    print(original_model)
 
-    dataloader = DataLoader(subset_dataset, batch_size=32, shuffle=False)
-
-    accuracy, f1, recall, cm = evaluate_model(original_model, dataloader)
+    # Evaluate the model on the validation dataset
+    accuracy, f1, recall, cm = evaluate_model(
+        original_model, validation_loader)
 
     print(f"Accuracy: {accuracy:.4f}")
     print(f"F1 Score: {f1:.4f}")
