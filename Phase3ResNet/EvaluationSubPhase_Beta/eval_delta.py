@@ -2,66 +2,37 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
-from torch import optim
 from sklearn.metrics import accuracy_score, f1_score, recall_score, confusion_matrix
-from transformers import AutoModelForImageClassification
-import random
+import numpy as np
+import matplotlib.pyplot as plt
+from transformers import AutoModelForImageClassification, AutoConfig
+import os
 
 # Define the data transformation including resizing and normalization
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
+    transforms.Grayscale(num_output_channels=3),  # Convert grayscale to RGB
     transforms.ToTensor(),
     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 ])
 
-# Load CIFAR-10 dataset
-train_dataset = torchvision.datasets.CIFAR10(
-    root='./data', train=True, download=True, transform=transform)
-validation_dataset = torchvision.datasets.CIFAR10(
+# Load FashionMNIST dataset
+validation_dataset = torchvision.datasets.FashionMNIST(
     root='./data', train=False, download=True, transform=transform)
 
 # Use a smaller subset for evaluation
 subset_size = 1000
-subset_indices = random.sample(range(len(validation_dataset)), subset_size)
+subset_indices = np.random.choice(
+    len(validation_dataset), subset_size, replace=False)
 validation_subset = Subset(validation_dataset, subset_indices)
-validation_loader = DataLoader(validation_subset, batch_size=32, shuffle=False)
-
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+validation_loader = DataLoader(validation_subset, batch_size=16, shuffle=False)
 
 
-def load_model_for_cifar10():
+def load_model(model_dir):
+    config = AutoConfig.from_pretrained(model_dir)
     model = AutoModelForImageClassification.from_pretrained(
-        "microsoft/resnet-18")
-    model.classifier = torch.nn.Sequential(
-        torch.nn.Flatten(),
-        torch.nn.Linear(512, 10)  # CIFAR-10 has 10 classes
-    )
+        model_dir, config=config)
     return model
-
-
-def fine_tune_model(model, train_loader, epochs=3):
-    device = torch.device("cpu")  # Use CPU
-    model.to(device)
-    model.train()
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-    for epoch in range(epochs):
-        running_loss = 0.0
-        for batch in train_loader:
-            inputs, labels = batch
-            inputs, labels = inputs.to(device), labels.to(device)
-
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs.logits, labels)
-            loss.backward()
-            optimizer.step()
-
-            running_loss += loss.item()
-
-        print(
-            f"Epoch [{epoch+1}/{epochs}], Loss: {running_loss/len(train_loader):.4f}")
 
 
 def evaluate_model(model, dataloader):
@@ -69,8 +40,6 @@ def evaluate_model(model, dataloader):
     device = torch.device("cpu")  # Use CPU
     model.to(device)
 
-    correct = 0
-    total = 0
     all_labels = []
     all_predictions = []
 
@@ -81,11 +50,15 @@ def evaluate_model(model, dataloader):
 
             outputs = model(inputs)
             _, predicted = torch.max(outputs.logits, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
 
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
+
+            # Debug: print inputs and outputs
+            print(f"Inputs: {inputs.shape}")
+            print(f"Labels: {labels}")
+            print(f"Outputs: {outputs}")
+            print(f"Predicted: {predicted}")
 
     accuracy = accuracy_score(all_labels, all_predictions)
     f1 = f1_score(all_labels, all_predictions,
@@ -94,28 +67,46 @@ def evaluate_model(model, dataloader):
                           average='weighted', zero_division=1)
     cm = confusion_matrix(all_labels, all_predictions)
 
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"F1 Score: {f1:.4f}")
-    print(f"Recall: {recall:.4f}")
-
     return accuracy, f1, recall, cm
 
 
+def save_metrics(model_dir, accuracy, f1, recall, cm):
+    metrics_path = os.path.join(model_dir, "evaluation_metrics.txt")
+    with open(metrics_path, "w") as f:
+        f.write(f"Accuracy: {accuracy:.4f}\n")
+        f.write(f"F1 Score: {f1:.4f}\n")
+        f.write(f"Recall: {recall:.4f}\n")
+        f.write(f"Confusion Matrix:\n{cm}\n")
+
+    # Save the confusion matrix as a heatmap
+    plt.figure(figsize=(10, 8))
+    plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    plt.title("Confusion Matrix")
+    plt.colorbar()
+    plt.ylabel('True Label')
+    plt.xlabel('Predicted Label')
+    plt.savefig(os.path.join(model_dir, "confusion_matrix.png"))
+
+
 def main():
-    model = load_model_for_cifar10()
-    fine_tune_model(model, train_loader, epochs=3)
+    pruned_models = [
+        r"C:\Users\gigac\Documents\Projects\WaveletTransforms\Phase3ResNet\__OGPyTorchModel__",
+        "C:/Users/gigac/Documents/Projects/WaveletTransforms/Phase3ResNet/SavedModels/db1_threshold-0.001_level-0_guid-8b15/random_pruned",
+        "C:/Users/gigac/Documents/Projects/WaveletTransforms/Phase3ResNet/SavedModels/db1_threshold-0.001_level-0_guid-8b15/selective_pruned"
+    ]
 
-    # Evaluate the model on the CIFAR-10 validation subset
-    accuracy, f1, recall, cm = evaluate_model(model, validation_loader)
+    for model_dir in pruned_models:
+        model = load_model(model_dir)
+        print(model)  # Print model summary
+
+        accuracy, f1, recall, cm = evaluate_model(model, validation_loader)
+        save_metrics(model_dir, accuracy, f1, recall, cm)
+
+        print(f"Model: {model_dir}")
+        print(f"Accuracy: {accuracy:.4f}")
+        print(f"F1 Score: {f1:.4f}")
+        print(f"Recall: {recall:.4f}")
 
 
-    '''
-    Epoch [1/3], Loss: 0.6868
-    Epoch [2/3], Loss: 0.4007
-    Epoch [3/3], Loss: 0.2911
-    Accuracy: 0.8810
-    F1 Score: 0.8812
-    Recall: 0.8810
-'''
 if __name__ == "__main__":
     main()
