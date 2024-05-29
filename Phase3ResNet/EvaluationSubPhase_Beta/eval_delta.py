@@ -109,5 +109,13 @@ def main():
     accuracy, f1, recall, cm = evaluate_model(model, validation_loader)
 
 
+    '''
+    Epoch [1/3], Loss: 0.6868
+    Epoch [2/3], Loss: 0.4007
+    Epoch [3/3], Loss: 0.2911
+    Accuracy: 0.8810
+    F1 Score: 0.8812
+    Recall: 0.8810
+'''
 if __name__ == "__main__":
     main()
