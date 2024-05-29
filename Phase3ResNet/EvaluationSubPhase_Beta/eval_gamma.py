@@ -1,43 +1,36 @@
-import os
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from transformers import AutoImageProcessor, AutoModelForImageClassification, AutoConfig
-from safetensors.torch import load_file as load_safetensors
 from torch.utils.data import DataLoader
+from transformers import AutoImageProcessor, AutoModelForImageClassification, AutoConfig
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
 
-# Load CIFAR-10 dataset with proper transformations
+# Define the data transformation including resizing and normalization
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize to match ResNet input size
+    transforms.Resize((224, 224)),  # Resize to 224x224
     transforms.ToTensor(),
     # ImageNet normalization
     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
 ])
 
+# Load CIFAR-10 dataset
 validation_dataset = torchvision.datasets.CIFAR10(
     root='./data', train=False, download=True, transform=transform)
 validation_loader = DataLoader(
     validation_dataset, batch_size=32, shuffle=False)
 
-# Function to load the model
+# Function to load and modify the model for CIFAR-10
 
 
-def load_model(model_dir, model_type='bin'):
-    config_path = os.path.join(model_dir, 'config.json')
-    config = AutoConfig.from_pretrained(config_path, local_files_only=True)
-    model = AutoModelForImageClassification.from_config(config)
-    model_path = os.path.join(model_dir, f'pytorch_model.{model_type}')
-
-    if model_type == 'safetensors':
-        model_weights = load_safetensors(model_path)
-    elif model_type == 'bin':
-        model_weights = torch.load(model_path)
-    else:
-        raise ValueError(f"Unsupported model format: {model_type}")
-
-    model.load_state_dict(model_weights)
+def load_model_for_cifar10():
+    model = AutoModelForImageClassification.from_pretrained(
+        "microsoft/resnet-18")
+    # Modify the classifier for 10 classes of CIFAR-10
+    model.classifier = torch.nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(512, 10)  # CIFAR-10 has 10 classes
+    )
     return model
 
 # Function to evaluate the model
@@ -52,8 +45,6 @@ def evaluate_model(model, dataloader):
     with torch.no_grad():
         for batch in dataloader:
             inputs, labels = batch
-            print(
-                f"Inputs shape: {inputs.shape}, Labels shape: {labels.shape}")
             inputs = inputs.to(model.device)
             labels = labels.to(model.device)
             outputs = model(inputs)
@@ -103,18 +94,14 @@ def save_metrics_to_txt(accuracy, f1, recall):
 
 
 def main():
-    original_model_dir = "C:\\Users\\gigac\\Documents\\Projects\\WaveletTransforms\\Phase3ResNet\\__OGPyTorchModel__"
+    model = load_model_for_cifar10()
+    model.to('cpu')  # Assuming you're running on CPU
 
-    # Load the model
-    original_model = load_model(original_model_dir, 'bin')
-    original_model.to('cpu')  # Assuming you're running on CPU
-
-    # Verify model structure
-    print(original_model)
+    # Print model structure to verify changes
+    print(model)
 
     # Evaluate the model on the validation dataset
-    accuracy, f1, recall, cm = evaluate_model(
-        original_model, validation_loader)
+    accuracy, f1, recall, cm = evaluate_model(model, validation_loader)
 
     print(f"Accuracy: {accuracy:.4f}")
     print(f"F1 Score: {f1:.4f}")
