@@ -171,3 +171,25 @@ def print_model_structure(model, depth=0):
         print(f"{indent}{name} - {module.__class__.__name__}")
         if list(module.children()):
             print_model_structure(module, depth + 1)
+
+
+def get_layer(model, layer_name):
+    # Handle the case where the layer name is prefixed with the model's class name
+    prefix = 'ResNetForImageClassification.'
+    if layer_name.startswith(prefix):
+        layer_name = layer_name[len(prefix):]  # Remove the prefix
+
+    name_parts = layer_name.split('.')
+    current_model = model
+    for idx, part in enumerate(name_parts):
+        if part:  # Only attempt to get attribute if 'part' is not empty
+            print(f"Checking for part '{part}' at level {idx}")
+            if hasattr(current_model, part):
+                current_model = getattr(current_model, part)
+                print(
+                    f"Found part '{part}', current model: {type(current_model)}")
+            else:
+                print(
+                    f"Layer part '{part}' not found in the model at level {idx}")
+                return None
+    return current_model
