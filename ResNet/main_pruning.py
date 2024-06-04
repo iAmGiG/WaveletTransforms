@@ -31,6 +31,11 @@ flags.DEFINE_string('output_dir', 'SavedModels',
 def main(argv):
     """
     Apply random pruning to the model based on the selective pruning log.
+    This function loads a pre-trained model, applies wavelet pruning to generate a
+    selectively pruned model, and then applies random pruning to create a further
+    pruned model. The results are logged and saved. 
+    Futere iterations might include a 3rd test were we prune based on the smallest weight.
+
 
     Args:
         selective_pruning_log (str): Path to the selective pruning log file.

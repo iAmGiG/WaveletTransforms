@@ -1,10 +1,19 @@
 import os
 import csv
 from transformers import AutoModelForImageClassification, AutoConfig
-import torch
 
 
 def load_model(model_path, config_path):
+    """
+    Load a pre-trained model from the given path.
+
+    Args:
+        model_path (str): Path to the model file.
+        config_path (str): Path to the configuration file.
+
+    Returns:
+        model (torch.nn.Module): Loaded pre-trained model.
+    """
     config = AutoConfig.from_pretrained(config_path)
     model = AutoModelForImageClassification.from_pretrained(
         model_path, config=config)
@@ -14,7 +23,11 @@ def load_model(model_path, config_path):
 
 def save_model(model, output_path):
     """
-    Saves the model
+    Save the model to the specified output path.
+
+    Args:
+        model (torch.nn.Module): The model to be saved.
+        output_path (str): Path to save the model.
     """
     output_path = os.path.normpath(os.path.join(os.getcwd(), output_path))
     model.save_pretrained(output_path)
@@ -149,6 +162,15 @@ def check_and_set_pruned_instance_path(pruned_instance):
 
 
 def print_model_summary(model):
+    """
+    Print a summary of the model.
+
+    Args:
+        model (torch.nn.Module): The model to summarize.
+
+    Returns:
+        None
+    """
     total_params = 0
     print("Model Summary:")
     print("Layer Name" + "\t" * 7 + "Output Shape" + "\t" * 5 + "Param #")
@@ -166,6 +188,16 @@ def print_model_summary(model):
 
 
 def print_model_structure(model, depth=0):
+    """
+    Print the structure of the model.
+
+    Args:
+        model (torch.nn.Module): The model whose structure is to be printed.
+        depth (int): Current depth in the model's hierarchy.
+
+    Returns:
+        None
+    """
     indent = " " * (depth * 2)
     for name, module in model.named_children():
         print(f"{indent}{name} - {module.__class__.__name__}")
@@ -174,6 +206,16 @@ def print_model_structure(model, depth=0):
 
 
 def get_layer(model, layer_name):
+    """
+    Retrieve a specific layer from a model by its name.
+
+    Args:
+        model (torch.nn.Module): The model from which to retrieve the layer.
+        layer_name (str): The name of the layer to retrieve.
+
+    Returns:
+        torch.nn.Module: The specified layer of the model, or None if not found.
+    """
     # Handle the case where the layer name is prefixed with the model's class name
     prefix = 'ResNetForImageClassification.'
     if layer_name.startswith(prefix):

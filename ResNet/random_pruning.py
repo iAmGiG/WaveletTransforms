@@ -8,6 +8,9 @@ from utils import setup_csv_writer, log_pruning_details, append_to_experiment_lo
 def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold):
     """
     Apply random pruning to the model based on the selective pruning log.
+    
+    This function randomly prunes the model's weights based on a selective pruning
+    log, aiming to further reduce the model size while maintaining performance.
 
     Args:
         selective_pruning_log (str): Path to the selective pruning log file.
