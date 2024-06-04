@@ -144,23 +144,23 @@ cython_debug/
 .history/
 
 # Test locations
-Phase3ResNet/__OGModel__
-Phase3ResNet/pruned_model
-Phase3ResNet/pruned_123
-Phase3ResNet/SavedModels
-Phase3ResNet/__OGPyTorchModel__
-Phase3ResNet/EvaluationSubPhase/imagenet-1k-dataset/
-Phase3ResNet/EvaluationSubPhase/directory details
-Phase3ResNet/EvaluationSubPhase/results/report.html
-Phase3ResNet/EvaluationSubPhase/imagenet-1k-small-test/
-Phase3ResNet/EvaluationSubPhase/test_loader.pth
-Phase3ResNet/EvaluationSubPhase_alpha/imagenet-1k-dataset/
-Phase3ResNet/EvaluationSubPhase_alpha/imagenet-1k-small-test/
-Phase3ResNet/EvaluationSubPhase_alpha/results/
-Phase3ResNet/EvaluationSubPhase_alpha/directory details
-Phase3ResNet/EvaluationSubPhase_alpha/test_loader.pth
-Phase3ResNet/EvaluationSubPhase_reduced/data/
-Phase3ResNet/EvaluationSubPhase_Beta/imagenet-1k-dataset/
-Phase3ResNet/EvaluationSubPhase_Beta/cache/
-Phase3ResNet/EvaluationSubPhase_Beta/data/
-Phase3ResNet/EvaluationSubPhase_Beta/evaluation_metrics.txt
+ResNet/__OGModel__
+ResNet/pruned_model
+ResNet/pruned_123
+ResNet/SavedModels
+ResNet/__OGPyTorchModel__
+ResNet/EvaluationSubPhase/imagenet-1k-dataset/
+ResNet/EvaluationSubPhase/directory details
+ResNet/EvaluationSubPhase/results/report.html
+ResNet/EvaluationSubPhase/imagenet-1k-small-test/
+ResNet/EvaluationSubPhase/test_loader.pth
+ResNet/EvaluationSubPhase_alpha/imagenet-1k-dataset/
+ResNet/EvaluationSubPhase_alpha/imagenet-1k-small-test/
+ResNet/EvaluationSubPhase_alpha/results/
+ResNet/EvaluationSubPhase_alpha/directory details
+ResNet/EvaluationSubPhase_alpha/test_loader.pth
+ResNet/EvaluationSubPhase_reduced/data/
+ResNet/EvaluationSubPhase_Beta/imagenet-1k-dataset/
+ResNet/EvaluationSubPhase_Beta/cache/
+ResNet/EvaluationSubPhase_Beta/data/
+ResNet/EvaluationSubPhase_Beta/evaluation_metrics.txt
