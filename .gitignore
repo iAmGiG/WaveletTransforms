@@ -164,3 +164,6 @@ ResNet/EvaluationSubPhase_Beta/imagenet-1k-dataset/
 ResNet/EvaluationSubPhase_Beta/cache/
 ResNet/EvaluationSubPhase_Beta/data/
 ResNet/EvaluationSubPhase_Beta/evaluation_metrics.txt
+local_resnet18
+ResNet/local_resnet18
+Miniconda3-latest-Linux-x86_64.sh
