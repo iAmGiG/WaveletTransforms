@@ -3,12 +3,12 @@ import csv
 import numpy as np
 import torch
 import torch.nn as nn
-from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer, save_model
+from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer
 
 def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold):
     """
     Apply random pruning to the model based on the selective pruning log.
-
+    
     This function randomly prunes the model's weights based on a selective pruning
     log, aiming to further reduce the model size while maintaining performance.
 
@@ -43,12 +43,15 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
 
             layer = get_layer(model, layer_name)
             if layer and isinstance(layer, nn.Conv2d):
-                weights = layer.weight.data
-                flatten_weights = weights.view(-1)
-                indices_to_prune = torch.randperm(flatten_weights.numel(), device=weights.device)[:prune_count]
+                weights = layer.weight.data.cpu().numpy()
+                flatten_weights = weights.flatten()
+                indices_to_prune = np.random.choice(
+                    len(flatten_weights), prune_count, replace=False)
                 flatten_weights[indices_to_prune] = 0
-                layer.weight.data = flatten_weights.view_as(weights)
-                non_zero_params_after_pruning = torch.count_nonzero(flatten_weights).item()
+                weights = flatten_weights.reshape(weights.shape)
+                layer.weight.data = torch.from_numpy(
+                    weights).to(layer.weight.device)
+                non_zero_params_after_pruning = np.count_nonzero(weights)
 
                 # Calculate the actual pruned count
                 actual_pruned_count = original_param_count - non_zero_params_after_pruning
