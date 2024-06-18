@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer, save_model
 
-def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold):
+def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold, csv_path):
     """
     Apply random pruning to the model based on the selective pruning log.
 
@@ -19,6 +19,7 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
         wavelet (str): Wavelet type to be used.
         level (int): Level of wavelet decomposition.
         threshold (float): Threshold value for pruning.
+        csv_path (str): Path to the CSV file for logging.
 
     Returns:
         None
@@ -63,7 +64,7 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
     # Save the randomly pruned model
     save_model(model, random_pruned_dir)
     # Append to the combined experiment log
-    append_to_experiment_log(os.path.normpath(FLAGS.csv_path), guid, wavelet, level, threshold, 'random',
+    append_to_experiment_log(os.path.normpath(csv_path), guid, wavelet, level, threshold, 'random',
                              total_pruned_count, total_non_zero_params, random_pruned_dir)
     random_log_file.close()
     print("Random pruning completed.")
