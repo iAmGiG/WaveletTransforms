@@ -155,9 +155,12 @@ def check_and_set_pruned_instance_path(pruned_instance):
     Returns:
         str: The full path to the pruned instance directory.
     """
-    repo_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))
-    pruned_instance_path = os.path.join(repo_root, 'WaveletTransforms', 'ResNet', 'SavedModels', pruned_instance)
-    print(f"Pruned instance path: {pruned_instance_path}")
+    current_dir = os.getcwd()
+    if os.path.basename(current_dir) == 'Phase3ResNet':
+        pruned_instance_path = os.path.join('SavedModels', pruned_instance)
+    else:
+        pruned_instance_path = os.path.join(
+            current_dir, 'Phase3ResNet', 'SavedModels', pruned_instance)
     os.makedirs(pruned_instance_path, exist_ok=True)
     return pruned_instance_path
 
