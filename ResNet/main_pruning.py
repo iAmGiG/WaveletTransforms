@@ -12,7 +12,7 @@ TODO threshold values: - might want to do sub 0.0->0.1 domain
 0, 0.236, 0.382, 0.5, 0.618, 0.786, 1
 """
 # Command line argument setup
-flags.DEFINE_string('model_path', '__OGPyTorchModel__/pytorch_model.bin',
+flags.DEFINE_string('model_path', '__OGPyTorchModel__/model.safetensor',
                     'Path to the pre-trained ResNet model (bin file)')
 flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
                     'Path to the model configuration file (.json)')
@@ -49,17 +49,17 @@ def main(argv):
         None
     """
     model = load_model(FLAGS.model_path, FLAGS.config_path)
-
+    print("Generating Guid")
     guid = os.urandom(4).hex()
-
+    print("Storing Deep copy of model")
     # Create a new instance of the model for random pruning
     random_pruning_model = copy.deepcopy(model)
-
+    print("Starting Selective purning")
     # Selective Pruning Phase
     selective_log_path = wavelet_pruning(
         model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
     print(f"Selective pruning completed. Log saved at {selective_log_path}")
-
+    print("Starting Random purning")
     # Random Pruning Phase
     random_pruning(selective_log_path, random_pruning_model, guid,
                    FLAGS.wavelet, FLAGS.level, FLAGS.threshold)

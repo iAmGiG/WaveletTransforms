@@ -14,9 +14,13 @@ def load_model(model_path, config_path):
     Returns:
         model (torch.nn.Module): Loaded pre-trained model.
     """
-    config = AutoConfig.from_pretrained(config_path)
-    model = AutoModelForImageClassification.from_pretrained(
-        model_path, config=config)
+    # Check if the model_path is a local directory
+    if os.path.isdir(model_path):
+        config = AutoConfig.from_pretrained(config_path)
+        model = AutoModelForImageClassification.from_pretrained(model_path, config=config)
+    else:
+        raise ValueError(f"Provided model path {model_path} is not a valid directory.")
+    
     print("Pre-trained model loaded successfully.")
     return model
 
