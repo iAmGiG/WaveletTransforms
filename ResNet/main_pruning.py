@@ -18,12 +18,12 @@ flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
-flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3',
-                  'rbio1.3', 'sym2', 'mexh', 'morl'], 'Type of wavelet to use for DWT.')
+flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2'
+], 'Type of discrete wavelet to use for DWT.')
 flags.DEFINE_integer(
     'level', 0, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.0001, 'Threshold value for pruning wavelet coefficients')
+    'threshold', 0.1, 'Threshold value for pruning wavelet coefficients')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 
@@ -62,7 +62,7 @@ def main(argv):
     print("Starting Random purning")
     # Random Pruning Phase
     random_pruning(selective_log_path, random_pruning_model, guid,
-                   FLAGS.wavelet, FLAGS.level, FLAGS.threshold)
+                   FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path)
 
 
 if __name__ == '__main__':

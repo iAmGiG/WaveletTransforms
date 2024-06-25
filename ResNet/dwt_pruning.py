@@ -6,7 +6,7 @@ import torch.nn as nn
 from utils import log_pruning_details, setup_csv_writer, check_and_set_pruned_instance_path, save_model, append_to_experiment_log
 
 
-def multi_resolution_analysis(weights, wavelet, level, threshold):
+def multi_resolution_analysis(weights, wavelet, level, threshold, mode='periodization'):
     """
     Perform multi-resolution analysis and apply wavelet threshold pruning.
 
@@ -30,15 +30,16 @@ def multi_resolution_analysis(weights, wavelet, level, threshold):
         weight_np = weight.detach().cpu().numpy()
 
         # Perform wavelet decomposition
-        coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode='periodization')
-        coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs)
+        coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
+        coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
 
         # Apply threshold
         coeff_arr[np.abs(coeff_arr) < threshold] = 0
 
         # Reconstruct the weight
         pruned_coeffs = pywt.array_to_coeffs(coeff_arr, coeff_slices, output_format='wavedec2')
-        pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode='periodization')
+        pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode=mode, axes=(-2, -1))
+
 
         # Ensure the pruned weight has the same shape as the original
         pruned_weight_np = pruned_weight_np[:original_shape[0], :original_shape[1], :original_shape[2], :original_shape[3]]
