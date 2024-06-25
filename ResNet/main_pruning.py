@@ -8,8 +8,28 @@ from dwt_pruning import wavelet_pruning
 FLAGS = flags.FLAGS
 
 """
-TODO threshold values: - might want to do sub 0.0->0.1 domain
+TODO threshold values: - might want to do sub 0.0->0.1 domain or even a deeper sub domain of 0.00->0.01
 0, 0.236, 0.382, 0.5, 0.618, 0.786, 1
+Decomp level increasing looks to have been a key in improving the pruning, we want to increase the level to get a
+a finer image or less coarse capture of the layer, otherwise it becomes far to vulnerable to pruning. 
+
+Practical Considerations
+Level Bounds:
+
+Minimum: 0 (no decomposition).
+Maximum: Typically 3 to 5 levels for practical purposes, but it depends on the size of the input data. Larger data can be decomposed more times.
+Choosing Decomposition Levels:
+
+Higher levels of decomposition capture finer details and tend to prune fewer weights because the coefficients are smaller and subtler.
+Lower levels capture coarser features, potentially resulting in more significant pruning as larger coefficients are more likely to exceed the threshold.
+
+In PyWavelets, the upper bound for the decomposition level is determined by the size of the data 
+and the specific wavelet used. Generally, 
+the decomposition level cannot exceed the log base 2 of the smallest dimension of the input data.
+L=⌊log2 (N/filter length - 1)⌋ 
+
+N is the length of the data.
+The filter length depends on the wavelet used.
 """
 # Command line argument setup
 flags.DEFINE_string('model_path', '__OGPyTorchModel__/model.safetensor',
