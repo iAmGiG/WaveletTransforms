@@ -4,6 +4,7 @@ from absl import app, flags
 from utils import load_model
 from random_pruning import random_pruning
 from dwt_pruning import wavelet_pruning
+from min_weight_pruning import min_weight_pruning
 
 FLAGS = flags.FLAGS
 
@@ -39,7 +40,7 @@ flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
 flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2'
-], 'Type of discrete wavelet to use for DWT.')
+                                         ], 'Type of discrete wavelet to use for DWT.')
 flags.DEFINE_integer(
     'level', 0, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
@@ -83,6 +84,9 @@ def main(argv):
     # Random Pruning Phase
     random_pruning(selective_log_path, random_pruning_model, guid,
                    FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path)
+    # Perform minimum weight pruning based on selective pruning log
+    min_weight_pruning(selective_log_path, model, guid,
+                       FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path)
 
 
 if __name__ == '__main__':
