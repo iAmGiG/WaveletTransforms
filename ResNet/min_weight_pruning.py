@@ -1,6 +1,5 @@
 import os
 import csv
-import numpy as np
 import torch
 import torch.nn as nn
 from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer, save_model
@@ -55,7 +54,7 @@ def min_weight_pruning(selective_log_path, model, guid, wavelet, level, threshol
         os.path.normpath(min_log_path), mode='w')
 
     # Read the selective pruning log file
-    with open(selective_pruning_log, 'r') as log_file:
+    with open(selective_log_path, 'r') as log_file:
         log_reader = csv.DictReader(log_file)
         for row in log_reader:
             layer_name = row['Layer Name']
