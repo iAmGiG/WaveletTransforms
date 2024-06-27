@@ -41,18 +41,16 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
             coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
             coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
 
-        # Apply threshold
-        coeff_arr[np.abs(coeff_arr) < threshold] = 0
+            # Apply threshold
+            coeff_arr[np.abs(coeff_arr) < threshold] = 0
 
-        # Reconstruct the weight
-        pruned_coeffs = pywt.array_to_coeffs(coeff_arr, coeff_slices, output_format='wavedec2')
-        pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode=mode, axes=(-2, -1))
+            # Reconstruct the weight
+            pruned_coeffs = pywt.array_to_coeffs(coeff_arr, coeff_slices, output_format='wavedec2')
+            pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode=mode, axes=(-2, -1))
 
-        # Ensure the pruned weight has the same shape as the original
-        pruned_weight_np = pruned_weight_np[:original_shape[0], :original_shape[1], :original_shape[2], :original_shape[3]]
-
-        # Convert pruned weight back to tensor
-        pruned_weight = torch.tensor(pruned_weight_np, dtype=weight.dtype, device=device)
+            # Ensure the pruned weight has the same shape as the original
+            pruned_weight_np = pruned_weight_np[tuple(slice(0, dim) for dim in original_shape)]
+            pruned_weight = torch.tensor(pruned_weight_np, dtype=weight.dtype, device=device)
 
         pruned_weights.append(pruned_weight)
 
@@ -60,7 +58,7 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
         original_non_zero_params = torch.count_nonzero(weight).item()
         pruned_non_zero_params = torch.count_nonzero(pruned_weight).item()
         total_pruned_count += original_non_zero_params - pruned_non_zero_params
-
+    
     return pruned_weights, total_pruned_count
 
 

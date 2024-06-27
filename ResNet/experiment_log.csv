@@ -298,3 +298,4 @@ c86a5c1e,bior1.3,3,0.236,random,10717016,449896,/mnt/bst/yxie2/cregan1/WaveletTr
 1a02325c,haar,5,0.236,random,5159105,6007807,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-5_guid-1a02/random_pruned
 ad554bf8,haar,10,0.236,selective,180694,2359296,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-10_guid-ad55/selective_pruned
 ad554bf8,haar,10,0.236,random,180694,10986218,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-10_guid-ad55/random_pruned
+fc9a7d43,haar,3,0.236,selective,11206279,15759907,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-fc9a/selective_pruned
