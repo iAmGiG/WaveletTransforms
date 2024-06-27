@@ -4,9 +4,8 @@ from typing import List
 import torch
 from tqdm import tqdm
 from transformers import PreTrainedModel
-from typing import List, Tuple, Optional
+from typing import List, Optional
 from queue import Queue
-from main_pruning import log_queue
 from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
 
 
