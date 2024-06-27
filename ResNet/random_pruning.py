@@ -3,7 +3,6 @@ import csv
 from typing import Optional
 from queue import Queue
 from transformers import PreTrainedModel
-from main_pruning import log_queue
 import torch
 import torch.nn as nn
 from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
