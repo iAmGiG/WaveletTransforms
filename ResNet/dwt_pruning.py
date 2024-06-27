@@ -29,17 +29,17 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
     for weight in weights:
         original_shape = weight.shape
         device = weight.device
-
-       # Original snippet (as shown in the image)
         weight_np = weight.detach().cpu().numpy()
 
-        # Ensure the tensor is at least 2D
+        # Check the dimensionality of the weight tensor
         if len(weight_np.shape) < 2:
-            raise ValueError("Expected input data to have at least 2 dimensions.")
-
-        # Perform wavelet decomposition
-        coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
-        coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
+            # For 1D tensors, apply simple threshold pruning
+            pruned_weight_np = np.where(np.abs(weight_np) < threshold, 0, weight_np)
+            pruned_weight = torch.tensor(pruned_weight_np, dtype=weight.dtype, device=device)
+        else:
+            # Perform wavelet decomposition for 2D+ tensors
+            coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
+            coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
 
         # Apply threshold
         coeff_arr[np.abs(coeff_arr) < threshold] = 0
