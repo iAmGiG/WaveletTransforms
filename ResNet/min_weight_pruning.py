@@ -1,10 +1,11 @@
 import os
 import csv
+from typing import List
 import torch
 from tqdm import tqdm
 from transformers import PreTrainedModel
-from typing import List
-from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer, save_model
+from main_pruning import log_queue
+from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
 
 
 def absolute_min_pruning(weights: List[torch.Tensor], prune_count: int) -> List[torch.Tensor]:
@@ -98,8 +99,10 @@ def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: st
 
     # Save the minimum weight pruned model
     save_model(model, min_pruned_dir)
-    # Append to the combined experiment log
-    append_to_experiment_log(os.path.normpath(csv_path), guid, wavelet, level, threshold, 'min',
-                             total_pruned_count, total_non_zero_params, min_pruned_dir)
+
+    # Use the log queue instead of directly calling append_to_experiment_log
+    log_queue.put((guid, wavelet, level, threshold, 'min',
+                  total_pruned_count, total_non_zero_params, min_pruned_dir))
+
     min_log_file.close()
     print("Minimum weight pruning completed.")

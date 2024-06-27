@@ -1,11 +1,14 @@
 import os
 import copy
+import threading
+import queue
 from absl import app, flags
-from utils import load_model
+from tqdm import tqdm
+from transformers import PreTrainedModel, AutoModelForImageClassification, AutoConfig
+from utils import load_model, save_model, append_to_experiment_log
 from random_pruning import random_pruning
 from dwt_pruning import wavelet_pruning
 from min_weight_pruning import min_weight_pruning
-
 FLAGS = flags.FLAGS
 
 """
@@ -48,9 +51,40 @@ flags.DEFINE_float(
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 
+# Global queue for thread-safe logging
+log_queue = queue.Queue()
+
+
+def log_worker(csv_path):
+    """Worker function to handle logging from multiple threads."""
+    while True:
+        log_entry = log_queue.get()
+        if log_entry is None:
+            break
+        append_to_experiment_log(csv_path, *log_entry)
+        log_queue.task_done()
+
+
+def threaded_pruning(pruning_func, model, selective_log_path, guid, wavelet, level, threshold, csv_path, method_name):
+    """Wrapper function for threaded pruning methods."""
+    try:
+        result = pruning_func(selective_log_path, model,
+                              guid, wavelet, level, threshold, csv_path)
+        print(f"{method_name} pruning completed.")
+        return result
+    except Exception as e:
+        print(f"Error in {method_name} pruning: {str(e)}")
+        return None
+
 
 def main(argv):
     """
+    Main function to run the pruning experiment with threading.
+
+    This function loads a pre-trained model, applies wavelet pruning to generate a
+    selectively pruned model, and then applies random pruning and minimum weight pruning
+    in parallel threads to create further pruned models. The results are logged and saved.
+
     Apply random pruning to the model based on the selective pruning log.
     This function loads a pre-trained model, applies wavelet pruning to generate a
     selectively pruned model, and then applies random pruning to create a further
@@ -70,23 +104,54 @@ def main(argv):
         None
     """
     model = load_model(FLAGS.model_path, FLAGS.config_path)
+    print("Model loaded successfully.")
     print("Generating Guid")
     guid = os.urandom(4).hex()
+    print(f"Generated GUID: {guid}")
+
     print("Storing Deep copy of model")
     # Create a new instance of the model for random pruning
-    random_pruning_model = copy.deepcopy(model)
-    print("Starting Selective purning")
-    # Selective Pruning Phase
+    # Create deep copies of the model for different pruning methods
+    dwt_model = copy.deepcopy(model)
+    random_model = copy.deepcopy(model)
+    min_weight_model = copy.deepcopy(model)
+
+    # Start the logging worker thread
+    log_thread = threading.Thread(target=log_worker, args=(FLAGS.csv_path,))
+    log_thread.start()
+
+    # Selective Pruning Phase (DWT)
+    print("Starting Selective (DWT) Pruning")
     selective_log_path = wavelet_pruning(
-        model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
+        dwt_model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
     print(f"Selective pruning completed. Log saved at {selective_log_path}")
+
     print("Starting Random purning")
-    # Random Pruning Phase
-    random_pruning(selective_log_path, random_pruning_model, guid,
-                   FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path)
-    # Perform minimum weight pruning based on selective pruning log
-    min_weight_pruning(selective_log_path, model, guid,
-                       FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path)
+    # Create and start threads for random and min weight pruning
+    random_thread = threading.Thread(
+        target=threaded_pruning,
+        args=(random_pruning, random_model, selective_log_path, guid, FLAGS.wavelet,
+              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Random")
+    )
+    print("Starting Min purning")
+    min_weight_thread = threading.Thread(
+        target=threaded_pruning,
+        args=(min_weight_pruning, min_weight_model, selective_log_path, guid, FLAGS.wavelet,
+              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Minimum Weight")
+    )
+
+    random_thread.start()
+    min_weight_thread.start()
+
+    # Wait for both threads to complete
+    random_thread.join()
+    min_weight_thread.join()
+
+    # Signal the logging thread to finish
+    log_queue.put(None)
+    log_thread.join()
+
+    print("All pruning methods completed successfully.")
 
 
 if __name__ == '__main__':

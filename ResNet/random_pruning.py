@@ -1,9 +1,10 @@
 import os
 import csv
-import numpy as np
+from main_pruning import log_queue
 import torch
 import torch.nn as nn
-from utils import setup_csv_writer, log_pruning_details, append_to_experiment_log, check_and_set_pruned_instance_path, get_layer, save_model
+from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
+
 
 def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold, csv_path):
     """
@@ -46,10 +47,12 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
             if layer and isinstance(layer, nn.Conv2d):
                 weights = layer.weight.data
                 flatten_weights = weights.view(-1)
-                indices_to_prune = torch.randperm(flatten_weights.numel(), device=weights.device)[:prune_count]
+                indices_to_prune = torch.randperm(
+                    flatten_weights.numel(), device=weights.device)[:prune_count]
                 flatten_weights[indices_to_prune] = 0
                 layer.weight.data = flatten_weights.view_as(weights)
-                non_zero_params_after_pruning = torch.count_nonzero(flatten_weights).item()
+                non_zero_params_after_pruning = torch.count_nonzero(
+                    flatten_weights).item()
 
                 # Calculate the actual pruned count
                 actual_pruned_count = original_param_count - non_zero_params_after_pruning
@@ -64,7 +67,8 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
     # Save the randomly pruned model
     save_model(model, random_pruned_dir)
     # Append to the combined experiment log
-    append_to_experiment_log(os.path.normpath(csv_path), guid, wavelet, level, threshold, 'random',
-                             total_pruned_count, total_non_zero_params, random_pruned_dir)
+    log_queue.put((guid, wavelet, level, threshold, 'random',
+                  total_pruned_count, total_non_zero_params, random_pruned_dir))
+
     random_log_file.close()
     print("Random pruning completed.")
