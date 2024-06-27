@@ -30,30 +30,30 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
         original_shape = weight.shape
         device = weight.device
 
-        # Convert tensor to numpy array for wavelet processing
+       # Original snippet (as shown in the image)
         weight_np = weight.detach().cpu().numpy()
 
+        # Ensure the tensor is at least 2D
+        if len(weight_np.shape) < 2:
+            raise ValueError("Expected input data to have at least 2 dimensions.")
+
         # Perform wavelet decomposition
-        coeffs = pywt.wavedec2(
-            weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
+        coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
         coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
 
         # Apply threshold
         coeff_arr[np.abs(coeff_arr) < threshold] = 0
 
         # Reconstruct the weight
-        pruned_coeffs = pywt.array_to_coeffs(
-            coeff_arr, coeff_slices, output_format='wavedec2')
-        pruned_weight_np = pywt.waverec2(
-            pruned_coeffs, wavelet, mode=mode, axes=(-2, -1))
+        pruned_coeffs = pywt.array_to_coeffs(coeff_arr, coeff_slices, output_format='wavedec2')
+        pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode=mode, axes=(-2, -1))
 
         # Ensure the pruned weight has the same shape as the original
-        pruned_weight_np = pruned_weight_np[:original_shape[0],
-                                            :original_shape[1], :original_shape[2], :original_shape[3]]
+        pruned_weight_np = pruned_weight_np[:original_shape[0], :original_shape[1], :original_shape[2], :original_shape[3]]
 
         # Convert pruned weight back to tensor
-        pruned_weight = torch.tensor(
-            pruned_weight_np, dtype=weight.dtype, device=device)
+        pruned_weight = torch.tensor(pruned_weight_np, dtype=weight.dtype, device=device)
+
         pruned_weights.append(pruned_weight)
 
         # Calculate the number of pruned weights
@@ -77,13 +77,12 @@ def prune_layer_weights(layer: nn.Module, wavelet: str, level: int, threshold: f
     Returns:
         Tuple[int, int, int]: A tuple containing the original parameter count, non-zero parameter count after pruning, and total pruned count.
     """
+    # Original snippet (as shown in the image)
     weights = [param for param in layer.parameters()]
     original_param_count = sum(weight.numel() for weight in weights)
-    non_zero_params = sum(torch.count_nonzero(weight).item()
-                          for weight in weights)
+    non_zero_params = sum(torch.count_nonzero(weight).item() for weight in weights)
 
-    pruned_weights, layer_pruned_count = multi_resolution_analysis(
-        weights, wavelet, level, threshold)
+    pruned_weights, layer_pruned_count = multi_resolution_analysis(weights, wavelet, level, threshold)
 
     # Update layer weights
     with torch.no_grad():
