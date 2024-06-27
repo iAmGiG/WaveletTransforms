@@ -1,12 +1,16 @@
 import os
 import csv
+from typing import Optional
+from queue import Queue
+from transformers import PreTrainedModel
 from main_pruning import log_queue
 import torch
 import torch.nn as nn
 from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
 
 
-def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold, csv_path):
+def random_pruning(selective_log_path: str, model: PreTrainedModel, guid: str, wavelet: str,
+                   level: int, threshold: float, csv_path: str, log_queue: Optional[Queue] = None) -> None:
     """
     Apply random pruning to the model based on the selective pruning log.
 
@@ -14,7 +18,7 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
     log, aiming to further reduce the model size while maintaining performance.
 
     Args:
-        selective_pruning_log (str): Path to the selective pruning log file.
+        selective_log_path (str): Path to the selective pruning log file.
         model (torch.nn.Module): The model to be pruned.
         guid (str): Unique identifier for the pruning session.
         wavelet (str): Wavelet type to be used.
@@ -34,7 +38,7 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
         os.path.normpath(random_log_path), mode='w')
 
     # Read the selective pruning log file
-    with open(selective_pruning_log, 'r') as log_file:
+    with open(selective_log_path, 'r') as log_file:
         log_reader = csv.DictReader(log_file)
         for row in log_reader:
             layer_name = row['Layer Name']
@@ -67,8 +71,13 @@ def random_pruning(selective_pruning_log, model, guid, wavelet, level, threshold
     # Save the randomly pruned model
     save_model(model, random_pruned_dir)
     # Append to the combined experiment log
-    log_queue.put((guid, wavelet, level, threshold, 'random',
-                  total_pruned_count, total_non_zero_params, random_pruned_dir))
+    if log_queue is not None:
+        log_queue.put((guid, wavelet, level, threshold, 'random',
+                       total_pruned_count, total_non_zero_params, random_pruned_dir))
+    else:
+        from utils import append_to_experiment_log
+        append_to_experiment_log(csv_path, guid, wavelet, level, threshold,
+                                 'random', total_pruned_count, total_non_zero_params, random_pruned_dir)
 
     random_log_file.close()
     print("Random pruning completed.")
