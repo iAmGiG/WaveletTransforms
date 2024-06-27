@@ -3,9 +3,7 @@ import copy
 import threading
 import queue
 from absl import app, flags
-from tqdm import tqdm
-from transformers import PreTrainedModel, AutoModelForImageClassification, AutoConfig
-from utils import load_model, save_model, append_to_experiment_log
+from utils import load_model, append_to_experiment_log
 from random_pruning import random_pruning
 from dwt_pruning import wavelet_pruning
 from min_weight_pruning import min_weight_pruning
@@ -65,11 +63,11 @@ def log_worker(csv_path):
         log_queue.task_done()
 
 
-def threaded_pruning(pruning_func, model, selective_log_path, guid, wavelet, level, threshold, csv_path, method_name):
+def threaded_pruning(pruning_func, model, selective_log_path, guid, wavelet, level, threshold, csv_path, method_name, log_queue):
     """Wrapper function for threaded pruning methods."""
     try:
-        result = pruning_func(selective_log_path, model,
-                              guid, wavelet, level, threshold, csv_path)
+        result = pruning_func(selective_log_path, model, guid,
+                              wavelet, level, threshold, csv_path, log_queue)
         print(f"{method_name} pruning completed.")
         return result
     except Exception as e:
@@ -137,7 +135,7 @@ def main(argv):
     min_weight_thread = threading.Thread(
         target=threaded_pruning,
         args=(min_weight_pruning, min_weight_model, selective_log_path, guid, FLAGS.wavelet,
-              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Minimum Weight")
+              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Minimum Weight", log_queue)
     )
 
     random_thread.start()
