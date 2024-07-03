@@ -168,3 +168,4 @@ local_resnet18
 ResNet/local_resnet18
 Miniconda3-latest-Linux-x86_64.sh
 ResNet/imagenet-1k
+ResNet/preprocessed_test_data
