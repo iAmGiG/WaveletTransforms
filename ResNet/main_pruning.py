@@ -129,8 +129,9 @@ def main(argv):
     random_thread = threading.Thread(
         target=threaded_pruning,
         args=(random_pruning, random_model, selective_log_path, guid, FLAGS.wavelet,
-              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Random")
+            FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Random", log_queue)
     )
+
     print("Starting Min purning")
     min_weight_thread = threading.Thread(
         target=threaded_pruning,

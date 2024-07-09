@@ -299,3 +299,16 @@ c86a5c1e,bior1.3,3,0.236,random,10717016,449896,/mnt/bst/yxie2/cregan1/WaveletTr
 ad554bf8,haar,10,0.236,selective,180694,2359296,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-10_guid-ad55/selective_pruned
 ad554bf8,haar,10,0.236,random,180694,10986218,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-10_guid-ad55/random_pruned
 fc9a7d43,haar,3,0.236,selective,11206279,15759907,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-fc9a/selective_pruned
+ed9d10fc,haar,3,0.236,selective,11206279,15759907,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-ed9d/selective_pruned
+d6774e6e,haar,3,0.236,selective,11206279,15759907,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-d677/selective_pruned
+6be15515,haar,2,0.236,selective,11608404,12278970,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-2_guid-6be1/selective_pruned
+62adc3d7,haar,2,0.236,selective,11608404,12278970,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-2_guid-62ad/selective_pruned
+ced443d5,haar,2,0.236,selective,11608404,12278970,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-2_guid-ced4/selective_pruned
+ced443d5,haar,2,0.236,random,0,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-2_guid-ced4/random_pruned
+f91604b3,haar,3,0.236,selective,11206279,15759907,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-f916/selective_pruned
+f91604b3,haar,3,0.236,random,0,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-f916/random_pruned
+ca075ed0,haar,3,0.236,selective,10717867,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-ca07/selective_pruned
+ca075ed0,haar,3,0.236,random,10717867,449045,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-3_guid-ca07/random_pruned
+95b39c6c,haar,7,0.236,selective,1388382,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/selective_pruned
+95b39c6c,haar,7,0.236,min,206327,2152969,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/min_pruned
+95b39c6c,haar,7,0.236,random,1388382,9778530,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/random_pruned

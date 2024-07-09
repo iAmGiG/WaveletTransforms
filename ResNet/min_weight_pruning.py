@@ -1,47 +1,37 @@
 import os
 import csv
-from typing import List
-import torch
-from tqdm import tqdm
-from transformers import PreTrainedModel
 from typing import List, Optional
 from queue import Queue
+import torch
+from transformers import PreTrainedModel
 from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
 
-
-def absolute_min_pruning(weights: List[torch.Tensor], prune_count: int) -> List[torch.Tensor]:
+def absolute_min_pruning(weights: torch.Tensor, prune_count: int) -> torch.Tensor:
     """
-    Prune weights with the smallest absolute values until the count matches the given prune count.
-
-    This function implements the minimum weight pruning algorithm. It flattens each weight tensor,
-    selects the smallest absolute values, and sets them to zero.
+    Prune weights with the smallest absolute values.
 
     Args:
-        weights (List[torch.Tensor]): List of weight tensors to be pruned.
-        prune_count (int): The number of weights to prune.
+        weights (torch.Tensor): Weight tensor from a model layer.
+        prune_count (int): Number of weights to prune to zero.
 
     Returns:
-        List[torch.Tensor]: List of pruned weight tensors.
+        torch.Tensor: The pruned weight tensor.
     """
-    pruned_weights = []
-    for weight in weights:
-        flatten_weights = weight.view(-1)
-        _, indices_to_prune = torch.topk(
-            torch.abs(flatten_weights), prune_count, largest=False)
-        flatten_weights[indices_to_prune] = 0
-        pruned_weights.append(flatten_weights.view_as(weight))
-    return pruned_weights
-
+    flatten_weights = weights.view(-1)
+    abs_weights = torch.abs(flatten_weights)
+    _, indices_to_prune = torch.topk(abs_weights, prune_count, largest=False)
+    flatten_weights[indices_to_prune] = 0
+    return flatten_weights.view_as(weights)
 
 def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: str, wavelet: str, 
                        level: int, threshold: float, csv_path: str, log_queue: Optional[Queue] = None) -> None:
     """
-    Apply minimum weight pruning to the model based on the selective pruning log.
+    Apply minimum weight pruning based on the selective pruning log.
 
-    This function prunes the model's smallest weights based on the selective pruning log,
-    aiming to further reduce the model size while maintaining performance. It processes
-    each layer mentioned in the selective pruning log, applies minimum weight pruning,
-    and logs the results.
+    Perform minimum weight pruning on a model post-wavelet-based pruning. This function targets 
+    the smallest weights left after initial pruning to refine the model's efficiency. It uses a 
+    log from the prior pruning phase to identify layers and their state post-pruning, applying 
+    additional pruning to further reduce weight counts by targeting the least impactful weights.
 
     Args:
         selective_log_path (str): Path to the selective pruning log file.
@@ -51,64 +41,42 @@ def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: st
         level (int): Level of wavelet decomposition used in the previous pruning step.
         threshold (float): Threshold value used in the previous pruning step.
         csv_path (str): Path to the CSV file for logging overall experiment results.
+        log_queue (Optional[Queue]): Queue for thread-safe logging (if used in threading context).
 
     Returns:
         None
     """
-    total_pruned_count = 0
-    total_non_zero_params = 0
     min_pruned_dir = check_and_set_pruned_instance_path(
-        f"{wavelet}_min_pruning_threshold-{threshold}_level-{level}_guid-{guid[:4]}/min_pruned")
+        f"{wavelet}_threshold-{threshold}_level-{level}_guid-{guid[:4]}/min_pruned")
     min_log_path = os.path.join(min_pruned_dir, 'log.csv')
-    min_csv_writer, min_log_file = setup_csv_writer(
-        os.path.normpath(min_log_path), mode='w')
+    min_csv_writer, min_log_file = setup_csv_writer(min_log_path, mode='w')
 
     with open(selective_log_path, 'r') as log_file:
         log_reader = csv.DictReader(log_file)
-        total_layers = sum(1 for _ in log_reader)  # Count total layers
-        log_file.seek(0)  # Reset file pointer
-        next(log_reader)  # Skip header
-
-        for row in tqdm(log_reader, total=total_layers, desc="Pruning Progress"):
+        for row in log_reader:
             layer_name = row['Layer Name']
             original_param_count = int(row['Original Parameter Count'])
-            prune_count = int(row['Total Pruned Count'])
-            print(
-                f"Processing layer: {layer_name} with prune count: {prune_count}")
-
+            already_pruned_count = int(row['Total Pruned Count'])
             layer = get_layer(model, layer_name)
             if layer is not None and hasattr(layer, 'weight'):
-                weights = [layer.weight]
-                pruned_weights = absolute_min_pruning(weights, prune_count)
-
+                prune_count = max(0, original_param_count - already_pruned_count) // 10  # Further prune 10% of the remaining weights
+                pruned_weights = absolute_min_pruning(layer.weight.data, prune_count)
                 with torch.no_grad():
-                    layer.weight.copy_(pruned_weights[0])
+                    layer.weight.copy_(pruned_weights)
 
-                non_zero_params_after_pruning = torch.count_nonzero(
-                    pruned_weights[0]).item()
-
-                # Calculate the actual pruned count
+                non_zero_params_after_pruning = torch.count_nonzero(pruned_weights).item()
                 actual_pruned_count = original_param_count - non_zero_params_after_pruning
-
                 log_pruning_details(min_csv_writer, guid, wavelet, level, threshold, 'min',
                                     original_param_count, non_zero_params_after_pruning, actual_pruned_count, layer_name)
-                total_pruned_count += actual_pruned_count
-                total_non_zero_params += non_zero_params_after_pruning
             else:
-                print(
-                    f"Layer not found or does not have weights: {layer_name}")
+                print(f"Layer not found or does not have weights: {layer_name}")
 
-    # Save the minimum weight pruned model
     save_model(model, min_pruned_dir)
-
-    # Log the results
     if log_queue is not None:
-        # Use the log queue if provided
-        log_queue.put((guid, wavelet, level, threshold, 'min', total_pruned_count, total_non_zero_params, min_pruned_dir))
+        log_queue.put((guid, wavelet, level, threshold, 'min', actual_pruned_count, non_zero_params_after_pruning, min_pruned_dir))
     else:
-        # Otherwise, log directly (you might need to import append_to_experiment_log here)
-        from utils import append_to_experiment_log
-        append_to_experiment_log(csv_path, guid, wavelet, level, threshold, 'min', total_pruned_count, total_non_zero_params, min_pruned_dir)
+        append_to_experiment_log(csv_path, guid, wavelet, level, threshold, 'min', actual_pruned_count, non_zero_params_after_pruning, min_pruned_dir)
 
     min_log_file.close()
-    print("Minimum weight pruning completed.")
+    print("Minimum weight pruning completed and model saved.")
+

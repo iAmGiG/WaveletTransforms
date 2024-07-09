@@ -115,8 +115,7 @@ def wavelet_pruning(model: PreTrainedModel, wavelet: str, level: int, threshold:
         os.path.normpath(selective_log_path), mode='w')
 
     # Get all layers that have weights
-    layers_to_prune = [(name, module) for name, module in model.named_modules() if list(
-        module.parameters()) and any(p.requires_grad for p in module.parameters())]
+    layers_to_prune = [(name, module) for name, module in model.named_modules() if isinstance(module, nn.Conv2d)]
 
     # Use tqdm for progress tracking
     for name, module in tqdm(layers_to_prune, desc="Pruning Layers"):
