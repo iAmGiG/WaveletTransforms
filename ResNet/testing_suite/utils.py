@@ -40,13 +40,20 @@ def load_model(model_path):
     Load a pre-trained model from the given path.
 
     Args:
-        model_path (str): Path to the model directory.
+        model_path (str): Path to the directory containing model.safetensor and config.json.
 
     Returns:
         model (torch.nn.Module): Loaded pre-trained model.
     """
     if os.path.isdir(model_path):
         config_path = os.path.join(model_path, 'config.json')
+        model_file = os.path.join(model_path, 'model.safetensors')
+        
+        if not os.path.exists(config_path):
+            raise FileNotFoundError(f"Config file not found at {config_path}")
+        if not os.path.exists(model_file):
+            raise FileNotFoundError(f"Model file not found at {model_file}")
+        
         config = AutoConfig.from_pretrained(config_path)
         model = AutoModelForImageClassification.from_pretrained(model_path, config=config)
     else:

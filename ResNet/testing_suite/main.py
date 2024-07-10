@@ -10,19 +10,37 @@ from absl import app, flags
 import os
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_path", "./__OGPyTorchModel__/model.safetensor", "Path to the model directory")
+flags.DEFINE_string("model_path", "../__OGPyTorchModel__", "Path to the model directory")
 flags.DEFINE_string("data_path", "../preprocessed_test_data", "Path to the preprocessed test data")
 flags.DEFINE_integer("batch_size", 32, "Batch size for evaluation")
 
-def evaluate_model(model, dataloader, device):
+def load_preprocessed_batches(data_path):
+    batches = []
+    for file in sorted(os.listdir(data_path)):
+        if file.startswith("batch_") and file.endswith(".pt"):
+            batch_path = os.path.join(data_path, file)
+            batch = torch.load(batch_path)
+            batches.append(batch)
+    return batches
+
+def evaluate_model(model, preprocessed_batches, device):
     model.eval()
     all_preds = []
     all_labels = []
     
     with torch.no_grad():
-        for inputs, labels in dataloader:
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+        for batch in preprocessed_batches:
+            # Check if the batch is a dictionary
+            if isinstance(batch, dict):
+                inputs = batch['pixel_values'].to(device)
+                labels = batch['labels'].to(device)
+            # If it's a tuple or list, assume the first two elements are inputs and labels
+            elif isinstance(batch, (tuple, list)) and len(batch) >= 2:
+                inputs = batch[0].to(device)
+                labels = batch[1].to(device)
+            else:
+                raise ValueError(f"Unexpected batch format: {type(batch)}")
+            
             outputs = model(inputs)
             preds = outputs.logits.argmax(dim=-1)
             all_preds.extend(preds.cpu().numpy())
@@ -45,10 +63,10 @@ def main(argv):
     model.to(device)
     
     # Load preprocessed test data
-    test_loader = torch.load(FLAGS.data_path)
+    preprocessed_batches = load_preprocessed_batches(FLAGS.data_path)
     
     # Evaluate model
-    accuracy, f1, recall, cm = evaluate_model(model, test_loader, device)
+    accuracy, f1, recall, cm = evaluate_model(model, preprocessed_batches, device)
     
     # Log results
     logging.info(f"Accuracy: {accuracy:.4f}")
