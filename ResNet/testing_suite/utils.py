@@ -81,3 +81,32 @@ def setup_logging(log_dir):
             logging.StreamHandler()
         ]
     )
+
+def load_preprocessed_batches(data_path):
+    batches = []
+    labels = []
+    files = sorted(os.listdir(data_path))
+    print(f"Files in data path: {files[:10]}... (total {len(files)} files)")  # Print first 10 files for brevity
+
+    for file in files:
+        file_path = os.path.join(data_path, file)
+        data = torch.load(file_path)
+        
+        if file.startswith("batch_") and file.endswith(".pt"):
+            print(f"Loading batch file: {file_path}")
+            batches.append(data)
+        elif file.startswith("labels_") and file.endswith(".pt"):
+            print(f"Loading label file: {file_path}")
+            labels.append(data)
+        else:
+            print(f"Skipping file: {file}")
+
+    print(f"Loaded {len(batches)} batches and {len(labels)} label sets")
+    
+    if len(batches) == 0:
+        raise ValueError("No batches loaded. Check the data path and file format.")
+    
+    if len(labels) == 0:
+        print("Warning: No separate label files found. Assuming labels are included in the batches.")
+    
+    return batches, labels
