@@ -1,7 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-from transformers import ResNetImageProcessor
-from datasets import load_dataset
 from utils import load_model, setup_logging
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,10 +7,11 @@ import seaborn as sns
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
 import numpy as np
 from absl import app, flags
+import os
 
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_path", None, "Path to the model directory")
-flags.DEFINE_string("data_path", None, "Path to the ImageNet-1k dataset")
+flags.DEFINE_string("model_path", "./__OGPyTorchModel__/model.safetensor", "Path to the model directory")
+flags.DEFINE_string("data_path", "../preprocessed_test_data", "Path to the preprocessed test data")
 flags.DEFINE_integer("batch_size", 32, "Batch size for evaluation")
 
 def evaluate_model(model, dataloader, device):
@@ -21,9 +20,9 @@ def evaluate_model(model, dataloader, device):
     all_labels = []
     
     with torch.no_grad():
-        for batch in dataloader:
-            inputs = batch['pixel_values'].to(device)
-            labels = batch['labels'].to(device)
+        for inputs, labels in dataloader:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
             outputs = model(inputs)
             preds = outputs.logits.argmax(dim=-1)
             all_preds.extend(preds.cpu().numpy())
@@ -45,18 +44,11 @@ def main(argv):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     
-    # Prepare dataset
-    dataset = load_dataset("imagenet-1k", split="validation", cache_dir=FLAGS.data_path)
-    processor = ResNetImageProcessor.from_pretrained("microsoft/resnet-18")
-    
-    def preprocess_function(examples):
-        return processor(examples["image"], return_tensors="pt")
-    
-    processed_dataset = dataset.map(preprocess_function, batched=True, remove_columns=dataset.column_names)
-    dataloader = DataLoader(processed_dataset, batch_size=FLAGS.batch_size, shuffle=False)
+    # Load preprocessed test data
+    test_loader = torch.load(FLAGS.data_path)
     
     # Evaluate model
-    accuracy, f1, recall, cm = evaluate_model(model, dataloader, device)
+    accuracy, f1, recall, cm = evaluate_model(model, test_loader, device)
     
     # Log results
     logging.info(f"Accuracy: {accuracy:.4f}")
