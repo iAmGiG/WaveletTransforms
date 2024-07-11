@@ -17,11 +17,14 @@ def evaluate_model(model, data, device):
             try:
                 outputs = model(inputs)
                 print(f"Model output type: {type(outputs)}")
+                print(f"Raw outputs: {outputs[:3]}")  # Print raw outputs for first 3 examples
                 
                 if hasattr(outputs, 'logits'):
                     preds = outputs.logits.argmax(dim=-1)
                 else:
                     preds = outputs.argmax(dim=-1)
+                
+                print(f"Predictions: {preds[:10]}")  # Print first 10 predictions
                 
                 all_preds.extend(preds.cpu().numpy())
                 all_labels.extend(labels.cpu().numpy())
