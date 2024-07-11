@@ -1,6 +1,7 @@
 import torch
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
 
+
 def evaluate_model(model, data, device):
     model.eval()
     all_preds = []
@@ -8,27 +9,25 @@ def evaluate_model(model, data, device):
     
     with torch.no_grad():
         for i, (inputs, labels) in enumerate(data):
-            if isinstance(inputs, torch.Tensor):
-                # Check and adjust the channel dimension if necessary
-                if inputs.size(1) != 3:  # Assuming the channel dimension is the second one
-                    print(f"Batch {i} has incorrect channel dimension: {inputs.size(1)}, expected 3")
-                    continue  # Skip this batch or you could implement a method to correct it
-
-                inputs = inputs.to(device)
-                if labels is not None and isinstance(labels, torch.Tensor):
-                    labels = labels.to(device).long()
-                else:
-                    labels = None  # Adjust according to how labels are provided
-
-            else:
-                raise ValueError(f"Unexpected batch format at index {i}: {type(inputs)}")
+            print(f"Processing batch {i}")
+            
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
             try:
                 outputs = model(inputs)
-                preds = outputs.logits.argmax(dim=-1) if hasattr(outputs, 'logits') else outputs.argmax(dim=-1)
-                if labels is not None and labels.min() >= 0:  # Only consider non-dummy labels
-                    all_preds.extend(preds.cpu().numpy())
-                    all_labels.extend(labels.cpu().numpy())
+                print(f"Model output type: {type(outputs)}")
+                
+                if hasattr(outputs, 'logits'):
+                    preds = outputs.logits.argmax(dim=-1)
+                else:
+                    preds = outputs.argmax(dim=-1)
+                
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+                
+                print(f"Processed batch {i}, total predictions: {len(all_preds)}")
+                
             except Exception as e:
                 print(f"Error processing batch {i}: {str(e)}")
                 continue

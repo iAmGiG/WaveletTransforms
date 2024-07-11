@@ -30,6 +30,9 @@ def main(argv):
         if not attr.startswith("_"):
             print(f"{attr}: {getattr(model.config, attr)}")
 
+    # Print data path for verification
+    print(f"Data path: {FLAGS.data_path}")
+
     # Load preprocessed test data using DataLoader
     test_loader = prepare_test_dataloader(FLAGS.data_path, FLAGS.batch_size)
     
@@ -60,6 +63,7 @@ def main(argv):
     except Exception as e:
         print(f"Error during evaluation: {str(e)}")
         raise
+
 
 if __name__ == "__main__":
     app.run(main)
