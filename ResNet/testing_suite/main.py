@@ -9,11 +9,12 @@ import numpy as np
 from absl import app, flags
 import os
 from eval_model import evaluate_model
+from setup_test_dataloader import prepare_test_dataloader
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model_path", "../__OGPyTorchModel__",
                     "Path to the model directory")
-flags.DEFINE_string("data_path", "../preprocessed_test_data",
+flags.DEFINE_string("data_path", "imagenet1k/data/test_images",
                     "Path to the preprocessed test data")
 flags.DEFINE_integer("batch_size", 32, "Batch size for evaluation")
 
@@ -29,20 +30,16 @@ def main(argv):
         if not attr.startswith("_"):
             print(f"{attr}: {getattr(model.config, attr)}")
 
-    # Load preprocessed test data
-    preprocessed_batches, preprocessed_labels = load_preprocessed_batches(FLAGS.data_path)
+    # Load preprocessed test data using DataLoader
+    test_loader = prepare_test_dataloader(FLAGS.data_path, FLAGS.batch_size)
     
-    # Check if data is loaded correctly
-    if not preprocessed_batches:
-        raise ValueError("No preprocessed batches loaded. Check the data path and files.")
-    
-    # Print information about the first batch
-    print(f"First batch type: {type(preprocessed_batches[0])}")
-    print(f"First batch shape: {preprocessed_batches[0].shape}")
+    # Check if DataLoader is correctly prepared
+    if not test_loader:
+        raise ValueError("Test DataLoader is not correctly prepared. Check the data path and files.")
     
     # Evaluate model
     try:
-        accuracy, f1, recall, cm = evaluate_model(model, preprocessed_batches, device)
+        accuracy, f1, recall, cm = evaluate_model(model, test_loader, device)
         
         # Save metrics to CSV
         metrics_df = pd.DataFrame({'Accuracy': [accuracy], 'F1 Score': [f1], 'Recall': [recall]})

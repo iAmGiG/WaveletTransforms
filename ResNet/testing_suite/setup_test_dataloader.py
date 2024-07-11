@@ -48,9 +48,9 @@ def prepare_test_dataloader(test_dir, batch_size=32):
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
     return test_loader
 
-# Example usage
-if __name__ == "__main__":
-    test_loader = prepare_test_dataloader('imagenet1k/data/test_images')
-    for images, labels in test_loader:
-        print(f"Batch size: {images.size(0)}")
-        break
+# Test usage
+# if __name__ == "__main__":
+#     test_loader = prepare_test_dataloader('imagenet1k/data/test_images')
+#     for images, labels in test_loader:
+#         print(f"Batch size: {images.size(0)}")
+#         break
