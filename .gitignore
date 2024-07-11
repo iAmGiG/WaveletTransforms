@@ -172,3 +172,4 @@ ResNet/imagenet-1k/data
 ResNet/imagenet-1k/data/test_images
 ResNet/preprocessed_test_data
 imagenet-1k
+ResNet/testing_suite/imagenet1k
