@@ -2,6 +2,7 @@ import os
 import requests
 from tqdm import tqdm
 
+
 def get_hf_token():
     """Read the Hugging Face token from the cache directory."""
     token_path = os.path.expanduser("~/.cache/huggingface/token")
@@ -10,6 +11,7 @@ def get_hf_token():
             return file.read().strip()
     return None
 
+
 def download_large_file(url, token, destination):
     """Download a large file in chunks using requests with resume support."""
     headers = {'Authorization': f'Bearer {token}'}
@@ -17,10 +19,11 @@ def download_large_file(url, token, destination):
         # Get the file size of the partially downloaded file
         resume_header = {'Range': f'bytes={os.path.getsize(destination)}-'}
         headers.update(resume_header)
-    
+
     response = requests.get(url, headers=headers, stream=True)
-    total_size = int(response.headers.get('content-length', 0)) + os.path.getsize(destination)
-    
+    total_size = int(response.headers.get('content-length', 0)
+                     ) + os.path.getsize(destination)
+
     mode = 'ab' if 'bytes' in headers.get('Range', '') else 'wb'
     with open(destination, mode) as file, tqdm(
         desc=destination,
@@ -34,6 +37,7 @@ def download_large_file(url, token, destination):
             file.write(chunk)
             bar.update(len(chunk))
     print(f'File downloaded successfully to {destination}')
+
 
 # Set your Hugging Face token from the cache directory
 hf_token = get_hf_token()

@@ -1,6 +1,7 @@
 import tarfile
 import os
 
+
 def extract_tar_file(file_path, extract_path):
     """
     Extracts a tar.gz file to the specified directory.
@@ -14,6 +15,8 @@ def extract_tar_file(file_path, extract_path):
     with tarfile.open(file_path, 'r:gz') as tar:
         tar.extractall(path=extract_path)
 
+
 # Extract test_images.tar.gz
 # extract_tar_file('./imagenet-1k/data/test_images.tar.gz', './imagenet-1k/data/test_images')
-extract_tar_file("./imagenet_data/val_images.tar.gz", '../testing_suite/imagenet1k/data/val_images')
+extract_tar_file("./imagenet_data/val_images.tar.gz",
+                 '../testing_suite/imagenet1k/data/val_images')
