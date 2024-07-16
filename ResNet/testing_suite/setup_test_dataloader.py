@@ -9,6 +9,7 @@ from torchvision.transforms.functional import to_pil_image, to_tensor
 from torch.utils.data import DataLoader
 from pathlib import Path
 import torch
+import re
 
 
 class UnlabeledDataset(Dataset):
@@ -83,6 +84,50 @@ class ImageNetDataset(Dataset):
             image = self.transform(image)
         return image, label
 
+class ImageNetValidationDataset(Dataset):
+    def __init__(self, root, transform=None):
+        self.root = Path(root)
+        self.transform = transform
+        self.wnid_to_idx = {wnid: idx for idx, (wnid, _) in enumerate(IMAGENET2012_CLASSES.items())}
+        self.samples = self.make_dataset()
+
+    def make_dataset(self):
+        instances = []
+        wnid_pattern = re.compile(r'n\d+')
+        
+        for img_path in self.root.glob('*.JPEG'):
+            wnid_match = wnid_pattern.search(img_path.name)
+            if wnid_match:
+                wnid = wnid_match.group()
+                if wnid in self.wnid_to_idx:
+                    instances.append((str(img_path), self.wnid_to_idx[wnid]))
+                else:
+                    print(f"Warning: No class found for image {img_path.name}")
+            else:
+                print(f"Warning: Could not extract wnid from {img_path.name}")
+
+        print(f"Total images found: {len(instances)}")
+        return instances
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, index):
+        path, label = self.samples[index]
+        image = read_image(path)
+        if image.shape[0] == 1:  # Check if the image is grayscale
+            image = image.repeat(3, 1, 1)  # Convert grayscale to RGB by repeating the channels
+        image = to_pil_image(image)  # Convert tensor to PIL Image
+        if self.transform:
+            image = self.transform(image)
+        return image, label
+
+    def get_class_name(self, idx):
+        for wnid, (_, class_name) in zip(self.wnid_to_idx.keys(), IMAGENET2012_CLASSES.items()):
+            if self.wnid_to_idx[wnid] == idx:
+                return class_name
+        return "Unknown"
+
 def prepare_test_dataloader(test_dir, batch_size=32, model_preprocess=None, subset_size=None):
     if model_preprocess:
         transform = model_preprocess
@@ -127,8 +172,27 @@ def prepare_test_dataloader(test_dir, batch_size=32, model_preprocess=None, subs
     
     return test_loader
 
+def prepare_validation_dataloader(val_dir, batch_size=32, model_preprocess=None, subset_size=None):
+    if model_preprocess:
+        transform = model_preprocess
+    else:
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+    
+    val_dataset = ImageNetValidationDataset(val_dir, transform=transform)
+    
+    if subset_size and subset_size < len(val_dataset):
+        val_subset = torch.utils.data.Subset(val_dataset, range(subset_size))
+    else:
+        val_subset = val_dataset
 
-
+    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False, num_workers=4)
+    
+    return val_loader, val_dataset
 
 # Test usage
 # if __name__ == "__main__":

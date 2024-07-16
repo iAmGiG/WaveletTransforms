@@ -9,74 +9,81 @@ import numpy as np
 from absl import app, flags
 import os
 from eval_model import evaluate_model
-from setup_test_dataloader import prepare_test_dataloader
+from setup_test_dataloader import prepare_validation_dataloader
 import torchvision.models as models
 from imagenet1k.classes import IMAGENET2012_CLASSES
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("model_path", "../__OGPyTorchModel__", "Path to the model directory")
-flags.DEFINE_string("data_path", "imagenet1k/data/test_images", "Path to the ImageNet test data")
+flags.DEFINE_string("data_path", "imagenet1k/data/val_images", "Path to the ImageNet test data")
 flags.DEFINE_integer("batch_size", 32, "Batch size for evaluation")
 flags.DEFINE_integer("subset_size", 10, "Subset size for debugging")
 
-def debug_dataset(data_loader, num_samples=5):
+def debug_dataset(data_loader, dataset, num_samples=5):
     for i, (inputs, labels) in enumerate(data_loader):
         if i >= num_samples:
             break
         print(f"Sample {i}:")
         print(f"Input shape: {inputs.shape}")
-        print(f"Label: {labels[0].item()}")
-        print(f"Class name: {list(IMAGENET2012_CLASSES.values())[labels[0].item()]}")
+        print(f"Label index: {labels[0].item()}")
+        print(f"Class name: {dataset.get_class_name(labels[0].item())}")
         print("\n")
 
 def main(argv):
-    # Load pre-trained model from torchvision for comparison
-    model = models.resnet18(pretrained=True)
+    print("Starting main function")
+    
+    # Load pre-trained model
+    print("Loading pre-trained ResNet18 model")
+    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     
-    print("Model configuration attributes:")
-    for attr in dir(model):
-        if not attr.startswith("_"):
-            print(f"{attr}: {getattr(model, attr)}")
+    print(f"Model loaded and moved to device: {device}")
 
-    # Print data path for verification
-    print(f"Data path: {FLAGS.data_path}")
-
-    # Load preprocessed test data using DataLoader with subset for debugging
-    try:
-        test_loader = prepare_test_dataloader(FLAGS.data_path, FLAGS.batch_size, subset_size=FLAGS.subset_size)
-    except ValueError as e:
-        print(f"Error: {e}")
-        return
+    # Load validation data using DataLoader
+    print(f"Preparing validation data loader from path: {FLAGS.data_path}")
+    val_loader, val_dataset = prepare_validation_dataloader(FLAGS.data_path, FLAGS.batch_size, subset_size=FLAGS.subset_size)
+    
+    print(f"Validation dataset size: {len(val_dataset)}")
     
     # Debug the dataset
-    debug_dataset(test_loader)
+    print("Debugging dataset:")
+    debug_dataset(val_loader, val_dataset)
     
-    # Evaluate model on the subset
+    # Evaluate model on the validation set
     try:
-        accuracy, f1, recall, cm = evaluate_model(model, test_loader, device)
+        print("Starting model evaluation")
+        accuracy, f1, recall, cm = evaluate_model(model, val_loader, device)
+        
+        print(f"Evaluation complete. Metrics:")
+        print(f"Accuracy: {accuracy}")
+        print(f"F1 Score: {f1}")
+        print(f"Recall: {recall}")
         
         # Save metrics to CSV
         metrics_df = pd.DataFrame({'Accuracy': [accuracy], 'F1 Score': [f1], 'Recall': [recall]})
-        metrics_df.to_csv(os.path.join(FLAGS.model_path, 'test_metrics.csv'), index=False)
+        metrics_path = os.path.join(FLAGS.model_path, 'validation_metrics.csv')
+        metrics_df.to_csv(metrics_path, index=False)
+        print(f"Metrics saved to {metrics_path}")
         
         # Check and log confusion matrix
-        print(f"Confusion Matrix:\n{cm}")
-        if cm.size == 0:
-            raise ValueError("Confusion matrix is empty. Check the model predictions and labels.")
+        print(f"Confusion Matrix shape: {cm.shape}")
         
         # Plot and save confusion matrix
         plt.figure(figsize=(10, 8))
-        sns.heatmap(cm, annot=False)  # Set annot=False for ImageNet due to large number of classes
+        sns.heatmap(cm, annot=False)
         plt.title('Confusion Matrix')
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
-        plt.savefig(os.path.join(FLAGS.model_path, 'confusion_matrix.pdf'))
+        cm_path = os.path.join(FLAGS.model_path, 'confusion_matrix.pdf')
+        plt.savefig(cm_path)
+        print(f"Confusion matrix saved to {cm_path}")
+        
     except Exception as e:
         print(f"Error during evaluation: {str(e)}")
-        raise
+        traceback.print_exc()  # This will print the full stack trace
 
+    print("Main function completed successfully")
 
 if __name__ == "__main__":
     app.run(main)

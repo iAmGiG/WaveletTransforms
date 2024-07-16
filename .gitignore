@@ -173,3 +173,5 @@ ResNet/imagenet-1k/data/test_images
 ResNet/preprocessed_test_data
 imagenet-1k
 ResNet/testing_suite/imagenet1k
+ResNet/OneShotTools/imagenet_data/val_images.tar.gz
+ResNet/testing_suite/imagenet1k
