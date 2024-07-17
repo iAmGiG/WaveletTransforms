@@ -16,7 +16,10 @@ def evaluate_model(model, data_loader, device):
 
             inputs = inputs.to(device)
             labels = labels.to(device)
-
+            if i == 0:  # Print for the first batch
+                print(f"Raw model output shape: {outputs.shape}")
+                print(f"Raw model output (first 5 samples, first 10 classes):\n{outputs[:5, :10]}")
+            
             try:
                 outputs = model(inputs)
                 logging.debug(f"Model output type: {type(outputs)}")
@@ -36,6 +39,9 @@ def evaluate_model(model, data_loader, device):
             except Exception as e:
                 logging.error(f"Error processing batch {i}: {str(e)}")
                 continue
+            
+            if i % 10 == 0:
+                print(f"Processed {i+1} batches")
 
     if not all_preds or not all_labels:
         logging.error("No predictions or labels were generated.")

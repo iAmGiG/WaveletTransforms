@@ -121,13 +121,22 @@ class ImageNetValidationDataset(Dataset):
     def __getitem__(self, index):
         path, label = self.samples[index]
         image = read_image(path)
-        if image.shape[0] == 1:  # Check if the image is grayscale
-            # Convert grayscale to RGB by repeating the channels
+        
+        print(f"Loading image: {path}")
+        print(f"Original image shape: {image.shape}")
+        print(f"Original label: {label}")
+        
+        if image.shape[0] == 1:
             image = image.repeat(3, 1, 1)
-        image = to_pil_image(image)  # Convert tensor to PIL Image
+        image = to_pil_image(image)
+        
         if self.transform:
             image = self.transform(image)
-        return image, label
+        
+        print(f"Transformed image shape: {image.shape}")
+        print(f"Final label: {label}")
+        
+    return image, label
 
     def get_class_name(self, idx):
         for wnid, (_, class_name) in zip(self.wnid_to_idx.keys(), IMAGENET2012_CLASSES.items()):
