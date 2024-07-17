@@ -14,9 +14,13 @@ def load_model(model_path, config_path):
     Returns:
         model (torch.nn.Module): Loaded pre-trained model.
     """
-    config = AutoConfig.from_pretrained(config_path)
-    model = AutoModelForImageClassification.from_pretrained(
-        model_path, config=config)
+    # Check if the model_path is a local directory
+    if os.path.isdir(model_path):
+        config = AutoConfig.from_pretrained(config_path)
+        model = AutoModelForImageClassification.from_pretrained(model_path, config=config)
+    else:
+        raise ValueError(f"Provided model path {model_path} is not a valid directory.")
+    
     print("Pre-trained model loaded successfully.")
     return model
 
@@ -151,12 +155,9 @@ def check_and_set_pruned_instance_path(pruned_instance):
     Returns:
         str: The full path to the pruned instance directory.
     """
-    current_dir = os.getcwd()
-    if os.path.basename(current_dir) == 'Phase3ResNet':
-        pruned_instance_path = os.path.join('SavedModels', pruned_instance)
-    else:
-        pruned_instance_path = os.path.join(
-            current_dir, 'Phase3ResNet', 'SavedModels', pruned_instance)
+    repo_root = os.path.abspath(os.path.join(os.getcwd(), "../.."))
+    pruned_instance_path = os.path.join(repo_root, 'WaveletTransforms', 'ResNet', 'SavedModels', pruned_instance)
+    print(f"Pruned instance path: {pruned_instance_path}")
     os.makedirs(pruned_instance_path, exist_ok=True)
     return pruned_instance_path
 

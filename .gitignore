@@ -164,3 +164,14 @@ ResNet/EvaluationSubPhase_Beta/imagenet-1k-dataset/
 ResNet/EvaluationSubPhase_Beta/cache/
 ResNet/EvaluationSubPhase_Beta/data/
 ResNet/EvaluationSubPhase_Beta/evaluation_metrics.txt
+local_resnet18
+ResNet/local_resnet18
+Miniconda3-latest-Linux-x86_64.sh
+ResNet/imagenet-1k
+ResNet/imagenet-1k/data
+ResNet/imagenet-1k/data/test_images
+ResNet/preprocessed_test_data
+imagenet-1k
+ResNet/testing_suite/imagenet1k
+ResNet/OneShotTools/imagenet_data/val_images.tar.gz
+ResNet/testing_suite/imagenet1k

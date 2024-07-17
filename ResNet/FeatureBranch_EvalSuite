@@ -1,0 +1,49 @@
+# ImageNet-1k Test Suite Documentation
+
+## Overview
+
+Provide a brief description of the purpose of the test suite, its relevance to the ImageNet-1k dataset, and the main goals of the suite.
+
+## Features
+
+Detail the key features of the test suite, including:
+
+- **Image Loading**: Describe how images are loaded and preprocessed.
+- **Label Mapping**: Explain how labels are derived from the filenames or a separate file.
+- **Model Evaluation**: Outline how the model is evaluated using the dataset.
+
+## Current Implementation
+
+Summarize the current implementation, including:
+
+- **Directory Structure**: Describe the expected directory structure.
+- **Data Loader**: Explain the DataLoader setup.
+- **Evaluation Metrics**: List the metrics used for evaluating model performance.
+
+## Challenges Faced
+
+Discuss the challenges encountered during the implementation:
+
+- **File Naming and Class ID Extraction**: Issues with extracting correct class IDs from filenames.
+- **Label Accuracy**: Concerns about the correctness of label assignments.
+- **Image Preprocessing**: Any issues related to how images are preprocessed.
+
+## Debugging Steps
+
+Outline the steps taken to debug issues, including:
+
+- **Detailed Debug Prints**: Use of debug prints to trace the flow and catch errors.
+- **Validation of Path and Files**: Checks to ensure the correct path and file extensions.
+- **Sample Tests**: Use of a subset of data to quickly test and iterate.
+
+## Future Enhancements
+
+Propose future enhancements or features to be added to the test suite:
+
+- **Automated Testing**: Integration of automated tests to run before updates are merged.
+- **Performance Optimization**: Suggestions for optimizing data loading and processing.
+- **Extended Metrics**: Additional metrics for more granular performance evaluation.
+
+## Appendix
+
+- WIP
