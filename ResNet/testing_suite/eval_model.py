@@ -25,10 +25,7 @@ def evaluate_model(model, data_loader, device):
                 logging.debug(f"Model output type: {type(outputs)}")
                 logging.debug(f"Raw outputs: {outputs[:3]}")
 
-                if hasattr(outputs, 'logits'):
-                    preds = outputs.logits.argmax(dim=-1)
-                else:
-                    preds = outputs.argmax(dim=-1)
+                preds = outputs.argmax(dim=-1)
 
                 logging.debug(f"Predictions: {preds[:10]}")
                 all_preds.extend(preds.cpu().numpy())
