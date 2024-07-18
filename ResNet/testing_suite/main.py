@@ -1,96 +1,63 @@
-import torch
-from torch.utils.data import DataLoader
-from utils import load_model, setup_logging, load_preprocessed_batches
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
-import numpy as np
 from absl import app, flags
-import os
+import logging
+import traceback
+import torch
 from eval_model import evaluate_model
 from setup_test_dataloader import prepare_validation_dataloader
-import torchvision.models as models
-from imagenet1k.classes import IMAGENET2012_CLASSES
+from utils import load_model
+import os
 
+# Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string("model_path", "../__OGPyTorchModel__",
-                    "Path to the model directory")
-flags.DEFINE_string("data_path", "imagenet1k/data/val_images",
-                    "Path to the ImageNet test data")
-flags.DEFINE_integer("batch_size", 32, "Batch size for evaluation")
-flags.DEFINE_integer("subset_size", 10, "Subset size for debugging")
-
-
-def debug_dataset(data_loader, dataset, num_samples=5):
-    for i, (inputs, labels) in enumerate(data_loader):
-        if i >= num_samples:
-            break
-        print(f"Sample {i}:")
-        print(f"Input shape: {inputs.shape}")
-        print(f"Label index: {labels[0].item()}")
-        print(f"Class name: {dataset.get_class_name(labels[0].item())}")
-        print("\n")
+flags.DEFINE_string('model_path', '../__OGPyTorchModel__', 'Path to the model directory')
+flags.DEFINE_string('data_path', 'imagenet1k/data/val_images', 'Path to the ImageNet validation data')
+flags.DEFINE_integer('batch_size', 64, 'Batch size for the DataLoader.')
+flags.DEFINE_string('output_dir', '../__OGPyTorchModel__', 'Directory where the output results should be saved.')
+flags.DEFINE_boolean('gpu', True, 'Whether to use GPU for model evaluation.')
 
 
 def main(argv):
-    print("Starting main function")
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    # Load pre-trained model
-    print("Loading pre-trained ResNet18 model")
-    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-
-    print(f"Model loaded and moved to device: {device}")
-
-    # Load validation data using DataLoader
-    print(f"Preparing validation data loader from path: {FLAGS.data_path}")
-    val_loader, val_dataset = prepare_validation_dataloader(
-        FLAGS.data_path, FLAGS.batch_size, subset_size=FLAGS.subset_size)
-
-    print(f"Validation dataset size: {len(val_dataset)}")
-
-    # Debug the dataset
-    print("Debugging dataset:")
-    debug_dataset(val_loader, val_dataset)
-
-    # Evaluate model on the validation set
     try:
-        print("Starting model evaluation")
+        # Device configuration
+        device = torch.device("cuda" if torch.cuda.is_available() and FLAGS.gpu else "cpu")
+
+        # Load pre-trained model from the specified model path using utils.load_model
+        model = load_model(FLAGS.model_path)
+        model.to(device)
+        logging.info(f"Model loaded and moved to device: {device}")
+
+        # Prepare validation dataloader using the specified data path
+        val_loader, val_dataset = prepare_validation_dataloader(FLAGS.data_path, batch_size=FLAGS.batch_size)
+        logging.info(f"Validation dataset size: {len(val_dataset)}")
+
+        # Evaluate model
+        logging.info("Starting model evaluation")
         accuracy, f1, recall, cm = evaluate_model(model, val_loader, device)
 
-        print(f"Evaluation complete. Metrics:")
-        print(f"Accuracy: {accuracy}")
-        print(f"F1 Score: {f1}")
-        print(f"Recall: {recall}")
+        logging.info(f"Evaluation complete. Metrics:")
+        logging.info(f"Accuracy: {accuracy}")
+        logging.info(f"F1 Score: {f1}")
+        logging.info(f"Recall: {recall}")
 
-        # Save metrics to CSV
-        metrics_df = pd.DataFrame(
-            {'Accuracy': [accuracy], 'F1 Score': [f1], 'Recall': [recall]})
-        metrics_path = os.path.join(FLAGS.model_path, 'validation_metrics.csv')
-        metrics_df.to_csv(metrics_path, index=False)
-        print(f"Metrics saved to {metrics_path}")
+        # Ensure output directory exists
+        os.makedirs(FLAGS.output_dir, exist_ok=True)
 
-        # Check and log confusion matrix
-        print(f"Confusion Matrix shape: {cm.shape}")
+        # Save metrics
+        metrics_path = os.path.join(FLAGS.output_dir, 'initial_evaluation_metrics.txt')
+        with open(metrics_path, 'w') as f:
+            f.write(f"Accuracy: {accuracy}\n")
+            f.write(f"F1 Score: {f1}\n")
+            f.write(f"Recall: {recall}\n")
+            f.write(f"Confusion Matrix:\n{cm}\n")
 
-        # Plot and save confusion matrix
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(cm, annot=False)
-        plt.title('Confusion Matrix')
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
-        cm_path = os.path.join(FLAGS.model_path, 'confusion_matrix.pdf')
-        plt.savefig(cm_path)
-        print(f"Confusion matrix saved to {cm_path}")
+        logging.info("Evaluation complete. Results saved.")
 
     except Exception as e:
-        print(f"Error during evaluation: {str(e)}")
-        traceback.print_exc()  # This will print the full stack trace
+        logging.error(f"An error occurred during execution: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise
 
-    print("Main function completed successfully")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(main)
