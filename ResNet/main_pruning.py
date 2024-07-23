@@ -45,7 +45,7 @@ flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3
 flags.DEFINE_integer(
     'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.1, 'Threshold value for pruning wavelet coefficients')
+    'threshold', 1.0, 'Threshold value for pruning wavelet coefficients')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 

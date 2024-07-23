@@ -10,7 +10,7 @@ from utils import load_model
 
 # Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model_path', '../SavedModels/haar_threshold-0.236_level-3_guid-f916',
+flags.DEFINE_string('model_path', '../SavedModels/rbio1.3_threshold-1.0_level-1_guid-968b',
                     'Path to the parent model directory')
 flags.DEFINE_string('data_path', 'imagenet1k/data/val_images',
                     'Path to the ImageNet validation data')
