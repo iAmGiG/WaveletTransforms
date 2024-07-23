@@ -50,24 +50,29 @@ def load_model(model_path):
     Returns:
         model (torch.nn.Module): Loaded pre-trained model.
     """
-    if os.path.isdir(model_path):
-        config_path = os.path.join(model_path, 'config.json')
-        model_file = os.path.join(model_path, 'model.safetensors')
+    if not os.path.isdir(model_path):
+        logging.error(f"Provided model path {model_path} is not a valid directory.")
+        return None
 
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found at {config_path}")
-        if not os.path.exists(model_file):
-            raise FileNotFoundError(f"Model file not found at {model_file}")
+    config_path = os.path.join(model_path, 'config.json')
+    model_file = os.path.join(model_path, 'model.safetensors')
 
+    if not os.path.exists(config_path):
+        logging.error(f"Config file not found at {config_path}")
+        return None
+    if not os.path.exists(model_file):
+        logging.error(f"Model file not found at {model_file}")
+        return None
+
+    try:
         config = AutoConfig.from_pretrained(config_path)
         model = AutoModelForImageClassification.from_pretrained(
             model_path, config=config)
-    else:
-        raise ValueError(
-            f"Provided model path {model_path} is not a valid directory.")
-
-    print("Pre-trained model loaded successfully.")
-    return model
+        logging.info("Pre-trained model loaded successfully.")
+        return model
+    except Exception as e:
+        logging.error(f"Error loading model from {model_path}: {str(e)}")
+        return None
 
 
 def setup_logging(log_dir):

@@ -10,7 +10,7 @@ from utils import load_model
 
 # Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model_path', '../__OGPyTorchModel__',
+flags.DEFINE_string('model_path', '../SavedModels/haar_threshold-0.236_level-3_guid-f916',
                     'Path to the parent model directory')
 flags.DEFINE_string('data_path', 'imagenet1k/data/val_images',
                     'Path to the ImageNet validation data')
@@ -26,19 +26,22 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
     try:
         model_name = os.path.basename(model_dir)
         logging.info(f"Starting evaluation for model: {model_name}")
-
+        
         model = load_model(model_dir)
+        if model is None:
+            logging.error(f"Failed to load model from {model_dir}")
+            return model_name, None, None, None, None
+        
         model.to(device)
-
-        accuracy, f1, recall, cm, avg_loss = evaluate_model(
-            model, val_loader, device)
-
+        
+        accuracy, f1, recall, cm, avg_loss = evaluate_model(model, val_loader, device)
+        
         logging.info(f"Evaluation complete for {model_name}. Metrics:")
         logging.info(f"Accuracy: {accuracy}")
         logging.info(f"F1 Score: {f1}")
         logging.info(f"Recall: {recall}")
         logging.info(f"Average Loss: {avg_loss}")
-
+        
         # Save metrics in the model's own directory
         metrics_path = os.path.join(model_dir, 'evaluation_metrics.txt')
         with open(metrics_path, 'w') as f:
@@ -48,14 +51,13 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
             f.write(f"Recall: {recall}\n")
             f.write(f"Average Loss: {avg_loss}\n")
             f.write(f"Confusion Matrix:\n{cm}\n")
-
+        
         logging.info(f"Results saved for {model_name} in {metrics_path}")
-
+        
         return model_name, accuracy, f1, recall, avg_loss
-
+    
     except Exception as e:
-        logging.error(
-            f"An error occurred during evaluation of {model_name}: {str(e)}")
+        logging.error(f"An error occurred during evaluation of {model_name}: {str(e)}")
         logging.error(traceback.format_exc())
         return model_name, None, None, None, None
 
