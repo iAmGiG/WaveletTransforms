@@ -9,13 +9,16 @@ from imagenet1k.classes import IMAGENET2012_CLASSES
 # Create a reverse mapping from WordNet IDs to class indices
 wnid_to_class_idx = {v: k for k, v in IMAGENET2012_CLASSES.items()}
 
+
 class ImageNetFlatDataset(Dataset):
     def __init__(self, root_dir, transform=None, split='validation'):
         self.root_dir = root_dir
         self.transform = transform
         self.split = split
-        self.image_paths = [os.path.join(root_dir, fname) for fname in os.listdir(root_dir) if fname.endswith('.JPEG')]
-        self.wnid_to_class_idx = {k: i for i, (k, v) in enumerate(IMAGENET2012_CLASSES.items())}
+        self.image_paths = [os.path.join(root_dir, fname) for fname in os.listdir(
+            root_dir) if fname.endswith('.JPEG')]
+        self.wnid_to_class_idx = {
+            k: i for i, (k, v) in enumerate(IMAGENET2012_CLASSES.items())}
 
     def __len__(self):
         return len(self.image_paths)
@@ -50,14 +53,16 @@ class ImageNetFlatDataset(Dataset):
                     valid_samples += 1
                 else:
                     invalid_samples += 1
-                    logging.warning(f"Invalid synset ID found in file: {img_path}")
+                    logging.warning(
+                        f"Invalid synset ID found in file: {img_path}")
             except ValueError:
                 invalid_samples += 1
                 logging.warning(f"Unexpected filename format: {img_path}")
-        
+
         logging.info(f"Valid samples: {valid_samples}")
         logging.info(f"Invalid samples: {invalid_samples}")
         return valid_samples, invalid_samples
+
 
 def sanity_check(dataset, num_samples=5):
     for i in range(num_samples):
@@ -76,7 +81,8 @@ def prepare_validation_dataloader(val_dir, batch_size=32, subset_size=None):
         transforms.Resize(256),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                             0.229, 0.224, 0.225]),
     ])
 
     val_dataset = ImageNetFlatDataset(root_dir=val_dir, transform=transform)
@@ -84,7 +90,8 @@ def prepare_validation_dataloader(val_dir, batch_size=32, subset_size=None):
     # Validate dataset
     valid_samples, invalid_samples = val_dataset.validate_dataset()
     if invalid_samples > 0:
-        logging.warning(f"Found {invalid_samples} invalid samples in the dataset")
+        logging.warning(
+            f"Found {invalid_samples} invalid samples in the dataset")
 
     # Perform sanity check
     sanity_check(val_dataset)
@@ -94,6 +101,7 @@ def prepare_validation_dataloader(val_dir, batch_size=32, subset_size=None):
     else:
         val_subset = val_dataset
 
-    val_loader = DataLoader(val_subset, batch_size=batch_size, shuffle=False, num_workers=4)
+    val_loader = DataLoader(
+        val_subset, batch_size=batch_size, shuffle=False, num_workers=4)
 
     return val_loader, val_dataset
