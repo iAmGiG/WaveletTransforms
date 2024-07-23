@@ -312,3 +312,6 @@ ca075ed0,haar,3,0.236,random,10717867,449045,/mnt/bst/yxie2/cregan1/WaveletTrans
 95b39c6c,haar,7,0.236,selective,1388382,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/selective_pruned
 95b39c6c,haar,7,0.236,min,206327,2152969,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/min_pruned
 95b39c6c,haar,7,0.236,random,1388382,9778530,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/haar_threshold-0.236_level-7_guid-95b3/random_pruned
+138f03e8,rbio1.3,1,0.1,selective,10988029,11166912,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/rbio1.3_threshold-0.1_level-1_guid-138f/selective_pruned
+138f03e8,rbio1.3,1,0.1,min,637,2358659,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/rbio1.3_threshold-0.1_level-1_guid-138f/min_pruned
+138f03e8,rbio1.3,1,0.1,random,10988029,178883,/mnt/bst/yxie2/cregan1/WaveletTransforms/ResNet/SavedModels/rbio1.3_threshold-0.1_level-1_guid-138f/random_pruned

@@ -34,16 +34,16 @@ N is the length of the data.
 The filter length depends on the wavelet used.
 """
 # Command line argument setup
-flags.DEFINE_string('model_path', '__OGPyTorchModel__/model.safetensor',
+flags.DEFINE_string('model_path', '__OGPyTorchModel__',
                     'Path to the pre-trained ResNet model (bin file)')
-flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
+flags.DEFINE_string('config_path', '__OGPyTorchModel__',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
 flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2'
                                          ], 'Type of discrete wavelet to use for DWT.')
 flags.DEFINE_integer(
-    'level', 0, 'Level of decomposition for the wavelet transform')
+    'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
     'threshold', 0.1, 'Threshold value for pruning wavelet coefficients')
 flags.DEFINE_string('output_dir', 'SavedModels',
@@ -101,7 +101,16 @@ def main(argv):
     Returns:
         None
     """
-    model = load_model(FLAGS.model_path, FLAGS.config_path)
+    model_path = FLAGS.model_path
+    config_path = FLAGS.config_path
+
+    print(f"Model directory: {model_path}")
+    print(f"Config file: {config_path}")
+
+    if not os.path.isdir(model_path):
+        raise ValueError(f"Provided model path {model_path} is not a valid directory.")
+    
+    model = load_model(model_path, config_path)
     print("Model loaded successfully.")
     print("Generating Guid")
     guid = os.urandom(4).hex()
