@@ -1,5 +1,5 @@
 import torch
-from sklearn.metrics import confusion_matrix, accuracy_score, f1_score, recall_score
+from sklearn.metrics import accuracy_score, f1_score, recall_score
 import logging
 from torch.nn import CrossEntropyLoss
 
@@ -24,14 +24,11 @@ def evaluate_model(model, data_loader, device):
 
                 if hasattr(outputs, 'logits'):
                     logits = outputs.logits
-                    logging.debug(f"Model logits shape: {logits.shape}")
-                    preds = logits.argmax(dim=-1)
-                elif isinstance(outputs, torch.Tensor):
-                    logging.debug(f"Model output shape: {outputs.shape}")
-                    preds = outputs.argmax(dim=-1)
                 else:
-                    raise ValueError(
-                        f"Unexpected model output type: {type(outputs)}")
+                    logits = outputs
+
+                logging.debug(f"Model logits shape: {logits.shape}")
+                preds = logits.argmax(dim=-1)
 
                 # Calculate loss
                 loss = criterion(logits, labels)
@@ -63,9 +60,8 @@ def evaluate_model(model, data_loader, device):
     f1 = f1_score(all_labels, all_preds, average='weighted')
     recall = recall_score(all_labels, all_preds,
                           average='weighted', zero_division=1)
-    cm = confusion_matrix(all_labels, all_preds)
 
     # Calculate average loss
     avg_loss = total_loss / num_batches if num_batches > 0 else float('inf')
 
-    return accuracy, f1, recall, cm, avg_loss
+    return accuracy, f1, recall, avg_loss
