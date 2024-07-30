@@ -4,6 +4,22 @@ import logging
 from torch.nn import CrossEntropyLoss
 
 
+def calculate_sparsity(model, threshold=1e-6):
+    """Calculate the sparsity of the model."""
+    total_params = 0
+    near_zero_params = 0
+    for param in model.parameters():
+        if param.dim() > 1:  # Only consider weights, not biases
+            total_params += param.numel()
+            near_zero_params += torch.sum(torch.abs(param) < threshold).item()
+    
+    if total_params == 0:
+        return 0.0  # Avoid division by zero
+    
+    sparsity = near_zero_params / total_params
+    return sparsity
+
+
 def evaluate_model(model, data_loader, device):
     model.eval()
     all_preds = []
@@ -64,4 +80,19 @@ def evaluate_model(model, data_loader, device):
     # Calculate average loss
     avg_loss = total_loss / num_batches if num_batches > 0 else float('inf')
 
-    return accuracy, f1, recall, avg_loss
+    # Calculate sparsity
+    sparsity = calculate_sparsity(model)
+    
+    logging.info(f"Model sparsity: {sparsity:.6f}")
+    
+    # Log more details about the model structure
+    total_params = sum(p.numel() for p in model.parameters())
+    logging.info(f"Total parameters: {total_params}")
+    
+    for name, param in model.named_parameters():
+        if param.dim() > 1:  # Only log details for weight matrices
+            zeros = torch.sum(torch.abs(param) < 1e-6).item()
+            total = param.numel()
+            logging.info(f"Layer {name}: {zeros}/{total} near-zero parameters")
+
+    return accuracy, f1, recall, avg_loss, sparsity 

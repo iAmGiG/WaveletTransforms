@@ -13,12 +13,11 @@ import json
 
 # Define flags
 FLAGS = flags.FLAGS
-flags.DEFINE_string('model_path', '../SavedModels/rbio1.3_threshold-1.0_level-1_guid-968b',
+flags.DEFINE_string('model_path', '../__OGPyTorchModel__',
                     'Path to the parent model directory')
 flags.DEFINE_string('data_path', 'imagenet1k/data/val_images',
                     'Path to the ImageNet validation data')
 flags.DEFINE_integer('batch_size', 64, 'Batch size for the DataLoader.')
-# flags.DEFINE_boolean('gpu', True, 'Whether to use GPU for model evaluation.')
 flags.DEFINE_string('device', 'cuda', 'Device to use for evaluation')
 flags.DEFINE_integer(
     'num_threads', 4, 'Number of concurrent threads to use for evaluation.')
@@ -26,10 +25,10 @@ flags.DEFINE_integer(
     'timeout', 600, 'Timeout in seconds for each model evaluation')
 
 
-def create_and_save_plot(model_name, accuracy, f1, recall, avg_loss, output_dir):
-    plt.figure(figsize=(10, 6))
-    metrics = ['Accuracy', 'F1 Score', 'Recall']
-    values = [accuracy, f1, recall]
+def create_and_save_plot(model_name, accuracy, f1, recall, avg_loss, sparsity, output_dir):
+    plt.figure(figsize=(12, 6))
+    metrics = ['Accuracy', 'F1 Score', 'Recall', 'Sparsity']
+    values = [accuracy, f1, recall, sparsity]
     plt.bar(metrics, values)
     plt.title(f'Model Evaluation Metrics: {model_name}')
     plt.ylabel('Score')
@@ -44,7 +43,7 @@ def create_and_save_plot(model_name, accuracy, f1, recall, avg_loss, output_dir)
     plot_path = os.path.join(
         output_dir, f'{model_name}_evaluation_metrics_plot.pdf')
     plt.savefig(plot_path)
-    plt.close('all')  # Ensure all plots are closed
+    plt.close()
     logging.info(f"Metrics visualization saved to: {plot_path}")
 
 
@@ -65,7 +64,7 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
             logging.info(
                 f"Model configuration: {json.dumps(config, indent=2)}")
 
-        accuracy, f1, recall, avg_loss = evaluate_model(
+        accuracy, f1, recall, avg_loss, sparsity = evaluate_model(
             model, val_loader, device)
 
         logging.info(f"Evaluation complete for {model_name}. Metrics:")
@@ -73,6 +72,7 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
         logging.info(f"F1 Score: {f1}")
         logging.info(f"Recall: {recall}")
         logging.info(f"Average Loss: {avg_loss}")
+        logging.info(f"Sparsity: {sparsity}")
 
         # Save metrics in the model's own directory
         metrics_path = os.path.join(model_dir, 'evaluation_metrics.txt')
@@ -82,14 +82,15 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
             f.write(f"F1 Score: {f1}\n")
             f.write(f"Recall: {recall}\n")
             f.write(f"Average Loss: {avg_loss}\n")
+            f.write(f"Sparsity: {sparsity}\n")
 
         # Create and save plot
         create_and_save_plot(model_name, accuracy, f1,
-                             recall, avg_loss, model_dir)
+                             recall, avg_loss, sparsity, model_dir)
 
         logging.info(f"Results saved for {model_name} in {metrics_path}")
 
-        return model_name, accuracy, f1, recall, avg_loss
+        return model_name, accuracy, f1, recall, avg_loss, sparsity
 
     except Exception as e:
         logging.error(
@@ -139,12 +140,13 @@ def main(argv):
 
         # Summarize results
         logging.info("Evaluation complete for all models. Summary:")
-        for model_name, accuracy, f1, recall, avg_loss in results:
+        for model_name, accuracy, f1, recall, avg_loss, sparsity in results:
             logging.info(f"Model: {model_name}")
             logging.info(f"  Accuracy: {accuracy}")
             logging.info(f"  F1 Score: {f1}")
             logging.info(f"  Recall: {recall}")
             logging.info(f"  Average Loss: {avg_loss}")
+            logging.info(f"  Sparsity: {sparsity}")
             logging.info("--------------------")
 
         # Ensure all resources are properly cleaned up
