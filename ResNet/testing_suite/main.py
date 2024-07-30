@@ -37,7 +37,9 @@ def create_and_save_plot(model_name, accuracy, f1, recall, avg_loss, sparsity, o
     for i, v in enumerate(values):
         plt.text(i, v, f'{v:.3f}', ha='center', va='bottom')
 
-    plt.text(0.5, -0.1, f'Average Loss: {avg_loss:.4f}',
+    plt.text(0.5, -0.15, f'Average Loss: {avg_loss:.4f}',
+             ha='center', transform=plt.gca().transAxes)
+    plt.text(0.5, -0.25, f'Sparsity: {sparsity*100:.4f}%',
              ha='center', transform=plt.gca().transAxes)
 
     plot_path = os.path.join(
@@ -73,6 +75,8 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
         logging.info(f"Recall: {recall}")
         logging.info(f"Average Loss: {avg_loss}")
         logging.info(f"Sparsity: {sparsity}")
+        sparsity_percentage = sparsity * 100
+        logging.info(f"Sparsity: {sparsity_percentage:.4f}%")
 
         # Save metrics in the model's own directory
         metrics_path = os.path.join(model_dir, 'evaluation_metrics.txt')
@@ -83,6 +87,7 @@ def evaluate_model_wrapper(model_dir, val_loader, device):
             f.write(f"Recall: {recall}\n")
             f.write(f"Average Loss: {avg_loss}\n")
             f.write(f"Sparsity: {sparsity}\n")
+            f.write(f"Sparsity: {sparsity_percentage:.4f}%\n")
 
         # Create and save plot
         create_and_save_plot(model_name, accuracy, f1,
