@@ -34,9 +34,9 @@ N is the length of the data.
 The filter length depends on the wavelet used.
 """
 # Command line argument setup
-flags.DEFINE_string('model_path', '__OGPyTorchModel__',
+flags.DEFINE_string('model_path', '__OGPyTorchModel__/OGModel',
                     'Path to the pre-trained ResNet model (bin file)')
-flags.DEFINE_string('config_path', '__OGPyTorchModel__',
+flags.DEFINE_string('config_path', '__OGPyTorchModel__/OGModel',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
