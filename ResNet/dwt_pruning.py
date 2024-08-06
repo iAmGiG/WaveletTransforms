@@ -36,11 +36,9 @@ def entropy_based_thresholding(coeff_arr, entropy, threshold=1.0):
 def percentile_based_thresholding(coeff_arr, percentile=90):
     """Apply percentile-based thresholding to the coefficients array."""
     threshold = np.percentile(np.abs(coeff_arr), percentile)
-    # Debugging output
-    print(
-        f"Percentile: {percentile}, Threshold: {threshold}, Max Coeff: {np.max(np.abs(coeff_arr))}")
+    print(f"Percentile: {percentile}, Threshold: {threshold}, Max Coeff: {np.max(np.abs(coeff_arr))}")  # Debugging output
     pruned_coeff_arr = np.where(np.abs(coeff_arr) < threshold, 0, coeff_arr)
-    return pruned_coeff_arr, threshold
+    return pruned_coeff_arr
 
 
 def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: int, percentile: float, mode: str = 'periodization') -> Tuple[List[torch.Tensor], int]:
@@ -68,7 +66,7 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
         print(f"Original Shape: {original_shape}, Weight Size: {weight_np.size}")
 
         if len(weight_np.shape) < 2:
-            pruned_weight_np, threshold = percentile_based_thresholding(weight_np, percentile)
+            pruned_weight_np = percentile_based_thresholding(weight_np, percentile)
             pruned_weight = torch.tensor(pruned_weight_np, dtype=weight.dtype, device=device).view(original_shape)
         else:
             max_level = pywt.dwt_max_level(min(weight_np.shape[-2:]), wavelet)
@@ -77,7 +75,7 @@ def multi_resolution_analysis(weights: List[torch.Tensor], wavelet: str, level: 
             coeffs = pywt.wavedec2(weight_np, wavelet, level=level, mode=mode, axes=(-2, -1))
             coeff_arr, coeff_slices = pywt.coeffs_to_array(coeffs, axes=(-2, -1))
             
-            pruned_coeff_arr, threshold = percentile_based_thresholding(coeff_arr, percentile)
+            pruned_coeff_arr = percentile_based_thresholding(coeff_arr, percentile)
             
             pruned_coeffs = pywt.array_to_coeffs(pruned_coeff_arr, coeff_slices, output_format='wavedec2')
             pruned_weight_np = pywt.waverec2(pruned_coeffs, wavelet, mode=mode)
