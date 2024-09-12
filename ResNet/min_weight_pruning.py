@@ -36,7 +36,29 @@ from typing import Optional
 from queue import Queue
 import torch
 from transformers import PreTrainedModel
-from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
+from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model, append_to_experiment_log
+
+
+def calculate_dwt_pruning_percentage(selective_log_path: str) -> float:
+    """
+    Calculate the overall pruning percentage from the DWT-based pruning log.
+
+    Args:
+        selective_log_path (str): Path to the selective pruning log file.
+
+    Returns:
+        float: The overall pruning percentage.
+    """
+    total_params = 0
+    total_pruned = 0
+
+    with open(selective_log_path, 'r') as log_file:
+        log_reader = csv.DictReader(log_file)
+        for row in log_reader:
+            total_params += int(row['Original Parameter Count'])
+            total_pruned += int(row['Pruned Parameter Count'])
+
+    return total_pruned / total_params if total_params > 0 else 0.0
 
 
 def percentage_min_pruning(weights: torch.Tensor, prune_percentage: float) -> torch.Tensor:
@@ -45,7 +67,7 @@ def percentage_min_pruning(weights: torch.Tensor, prune_percentage: float) -> to
 
     Args:
         weights (torch.Tensor): Weight tensor from a model layer.
-        prune_percentage (float): Percentage of weights to prune to zero (0.0 to 1.0).
+        prune_percentage (float): Percentage of weights to prune (0.0 to 1.0).
 
     Returns:
         torch.Tensor: The pruned weight tensor.
@@ -63,7 +85,7 @@ def percentage_min_pruning(weights: torch.Tensor, prune_percentage: float) -> to
 def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: str, wavelet: str,
                        level: int, threshold: float, csv_path: str, log_queue: Optional[Queue] = None) -> None:
     """
-    Apply minimum weight pruning based on the selective pruning log and threshold percentage.
+    Apply minimum weight pruning based on the overall pruning percentage from DWT-based pruning.
 
     Args:
         selective_log_path (str): Path to the selective pruning log file.
@@ -71,7 +93,7 @@ def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: st
         guid (str): Unique identifier for the pruning session.
         wavelet (str): Wavelet type used in the previous pruning step.
         level (int): Level of wavelet decomposition used in the previous pruning step.
-        threshold (float): Threshold value used as the percentage of weights to prune (0.0 to 1.0).
+        threshold (float): Threshold value used in the previous pruning step (not used for percentage-based pruning).
         csv_path (str): Path to the CSV file for logging overall experiment results.
         log_queue (Optional[Queue]): Queue for thread-safe logging (if used in threading context).
 
@@ -83,32 +105,33 @@ def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: st
     min_log_path = os.path.join(min_pruned_dir, 'log.csv')
     min_csv_writer, min_log_file = setup_csv_writer(min_log_path, mode='w')
 
+    # Calculate the overall pruning percentage from DWT-based pruning
+    overall_prune_percentage = calculate_dwt_pruning_percentage(
+        selective_log_path)
+    print(
+        f"Overall pruning percentage from DWT: {overall_prune_percentage:.2%}")
+
     total_params = 0
     total_pruned = 0
 
-    with open(selective_log_path, 'r') as log_file:
-        log_reader = csv.DictReader(log_file)
-        for row in log_reader:
-            layer_name = row['Layer Name']
-            original_param_count = int(row['Original Parameter Count'])
-            layer = get_layer(model, layer_name)
-            if layer is not None and hasattr(layer, 'weight'):
-                pruned_weights = percentage_min_pruning(
-                    layer.weight.data, threshold)
-                with torch.no_grad():
-                    layer.weight.copy_(pruned_weights)
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            original_param_count = module.weight.numel()
+            pruned_weights = percentage_min_pruning(
+                module.weight.data, overall_prune_percentage)
 
-                non_zero_params_after_pruning = torch.count_nonzero(
-                    pruned_weights).item()
-                actual_pruned_count = original_param_count - non_zero_params_after_pruning
-                log_pruning_details(min_csv_writer, guid, wavelet, level, threshold, 'min',
-                                    original_param_count, non_zero_params_after_pruning, actual_pruned_count, layer_name)
+            with torch.no_grad():
+                module.weight.copy_(pruned_weights)
 
-                total_params += original_param_count
-                total_pruned += actual_pruned_count
-            else:
-                print(
-                    f"Layer not found or does not have weights: {layer_name}")
+            non_zero_params_after_pruning = torch.count_nonzero(
+                pruned_weights).item()
+            actual_pruned_count = original_param_count - non_zero_params_after_pruning
+
+            log_pruning_details(min_csv_writer, guid, wavelet, level, threshold, 'min',
+                                original_param_count, non_zero_params_after_pruning, actual_pruned_count, name)
+
+            total_params += original_param_count
+            total_pruned += actual_pruned_count
 
     save_model(model, min_pruned_dir)
     if log_queue is not None:
@@ -121,3 +144,4 @@ def min_weight_pruning(selective_log_path: str, model: PreTrainedModel, guid: st
     min_log_file.close()
     print(
         f"Minimum weight pruning completed. Pruned {total_pruned} out of {total_params} parameters.")
+    print(f"Actual pruning percentage: {total_pruned/total_params:.2%}")
