@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+e4249848,db2,10,1.0,min,9408,0,9408,resnet.embedder.embedder.convolution
+e4249848,db2,10,1.0,min,36864,0,36864,resnet.encoder.stages.0.layers.0.layer.0.convolution
+e4249848,db2,10,1.0,min,36864,0,36864,resnet.encoder.stages.0.layers.0.layer.1.convolution
+e4249848,db2,10,1.0,min,36864,0,36864,resnet.encoder.stages.0.layers.1.layer.0.convolution
+e4249848,db2,10,1.0,min,36864,0,36864,resnet.encoder.stages.0.layers.1.layer.1.convolution
+e4249848,db2,10,1.0,min,8192,0,8192,resnet.encoder.stages.1.layers.0.shortcut.convolution
+e4249848,db2,10,1.0,min,73728,0,73728,resnet.encoder.stages.1.layers.0.layer.0.convolution
+e4249848,db2,10,1.0,min,147456,0,147456,resnet.encoder.stages.1.layers.0.layer.1.convolution
+e4249848,db2,10,1.0,min,147456,0,147456,resnet.encoder.stages.1.layers.1.layer.0.convolution
+e4249848,db2,10,1.0,min,147456,0,147456,resnet.encoder.stages.1.layers.1.layer.1.convolution
+e4249848,db2,10,1.0,min,32768,0,32768,resnet.encoder.stages.2.layers.0.shortcut.convolution
+e4249848,db2,10,1.0,min,294912,0,294912,resnet.encoder.stages.2.layers.0.layer.0.convolution
+e4249848,db2,10,1.0,min,589824,0,589824,resnet.encoder.stages.2.layers.0.layer.1.convolution
+e4249848,db2,10,1.0,min,589824,0,589824,resnet.encoder.stages.2.layers.1.layer.0.convolution
+e4249848,db2,10,1.0,min,589824,0,589824,resnet.encoder.stages.2.layers.1.layer.1.convolution
+e4249848,db2,10,1.0,min,131072,0,131072,resnet.encoder.stages.3.layers.0.shortcut.convolution
+e4249848,db2,10,1.0,min,1179648,0,1179648,resnet.encoder.stages.3.layers.0.layer.0.convolution
+e4249848,db2,10,1.0,min,2359296,0,2359296,resnet.encoder.stages.3.layers.0.layer.1.convolution
+e4249848,db2,10,1.0,min,2359296,0,2359296,resnet.encoder.stages.3.layers.1.layer.0.convolution
+e4249848,db2,10,1.0,min,2359296,0,2359296,resnet.encoder.stages.3.layers.1.layer.1.convolution

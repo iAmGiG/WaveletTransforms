@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+63126510,db2,10,0.1,random,9408,9408,0,resnet.embedder.embedder.convolution
+63126510,db2,10,0.1,random,36864,36827,37,resnet.encoder.stages.0.layers.0.layer.0.convolution
+63126510,db2,10,0.1,random,36864,36827,37,resnet.encoder.stages.0.layers.0.layer.1.convolution
+63126510,db2,10,0.1,random,36864,36827,37,resnet.encoder.stages.0.layers.1.layer.0.convolution
+63126510,db2,10,0.1,random,36864,36827,37,resnet.encoder.stages.0.layers.1.layer.1.convolution
+63126510,db2,10,0.1,random,8192,8183,9,resnet.encoder.stages.1.layers.0.shortcut.convolution
+63126510,db2,10,0.1,random,73728,73654,74,resnet.encoder.stages.1.layers.0.layer.0.convolution
+63126510,db2,10,0.1,random,147456,147308,148,resnet.encoder.stages.1.layers.0.layer.1.convolution
+63126510,db2,10,0.1,random,147456,147308,148,resnet.encoder.stages.1.layers.1.layer.0.convolution
+63126510,db2,10,0.1,random,147456,147308,148,resnet.encoder.stages.1.layers.1.layer.1.convolution
+63126510,db2,10,0.1,random,32768,32735,33,resnet.encoder.stages.2.layers.0.shortcut.convolution
+63126510,db2,10,0.1,random,294912,294617,295,resnet.encoder.stages.2.layers.0.layer.0.convolution
+63126510,db2,10,0.1,random,589824,589234,590,resnet.encoder.stages.2.layers.0.layer.1.convolution
+63126510,db2,10,0.1,random,589824,589234,590,resnet.encoder.stages.2.layers.1.layer.0.convolution
+63126510,db2,10,0.1,random,589824,589234,590,resnet.encoder.stages.2.layers.1.layer.1.convolution
+63126510,db2,10,0.1,random,131072,130940,132,resnet.encoder.stages.3.layers.0.shortcut.convolution
+63126510,db2,10,0.1,random,1179648,1178468,1180,resnet.encoder.stages.3.layers.0.layer.0.convolution
+63126510,db2,10,0.1,random,2359296,2356936,2360,resnet.encoder.stages.3.layers.0.layer.1.convolution
+63126510,db2,10,0.1,random,2359296,2356936,2360,resnet.encoder.stages.3.layers.1.layer.0.convolution
+63126510,db2,10,0.1,random,2359296,2356936,2360,resnet.encoder.stages.3.layers.1.layer.1.convolution

@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+df6f810e,db2,10,0.618,min,9408,3594,5814,resnet.embedder.embedder.convolution
+df6f810e,db2,10,0.618,min,36864,14083,22781,resnet.encoder.stages.0.layers.0.layer.0.convolution
+df6f810e,db2,10,0.618,min,36864,14083,22781,resnet.encoder.stages.0.layers.0.layer.1.convolution
+df6f810e,db2,10,0.618,min,36864,14083,22781,resnet.encoder.stages.0.layers.1.layer.0.convolution
+df6f810e,db2,10,0.618,min,36864,14083,22781,resnet.encoder.stages.0.layers.1.layer.1.convolution
+df6f810e,db2,10,0.618,min,8192,3130,5062,resnet.encoder.stages.1.layers.0.shortcut.convolution
+df6f810e,db2,10,0.618,min,73728,28165,45563,resnet.encoder.stages.1.layers.0.layer.0.convolution
+df6f810e,db2,10,0.618,min,147456,56329,91127,resnet.encoder.stages.1.layers.0.layer.1.convolution
+df6f810e,db2,10,0.618,min,147456,56329,91127,resnet.encoder.stages.1.layers.1.layer.0.convolution
+df6f810e,db2,10,0.618,min,147456,56329,91127,resnet.encoder.stages.1.layers.1.layer.1.convolution
+df6f810e,db2,10,0.618,min,32768,12518,20250,resnet.encoder.stages.2.layers.0.shortcut.convolution
+df6f810e,db2,10,0.618,min,294912,112657,182255,resnet.encoder.stages.2.layers.0.layer.0.convolution
+df6f810e,db2,10,0.618,min,589824,225313,364511,resnet.encoder.stages.2.layers.0.layer.1.convolution
+df6f810e,db2,10,0.618,min,589824,225313,364511,resnet.encoder.stages.2.layers.1.layer.0.convolution
+df6f810e,db2,10,0.618,min,589824,225313,364511,resnet.encoder.stages.2.layers.1.layer.1.convolution
+df6f810e,db2,10,0.618,min,131072,50070,81002,resnet.encoder.stages.3.layers.0.shortcut.convolution
+df6f810e,db2,10,0.618,min,1179648,450626,729022,resnet.encoder.stages.3.layers.0.layer.0.convolution
+df6f810e,db2,10,0.618,min,2359296,901252,1458044,resnet.encoder.stages.3.layers.0.layer.1.convolution
+df6f810e,db2,10,0.618,min,2359296,901252,1458044,resnet.encoder.stages.3.layers.1.layer.0.convolution
+df6f810e,db2,10,0.618,min,2359296,901252,1458044,resnet.encoder.stages.3.layers.1.layer.1.convolution

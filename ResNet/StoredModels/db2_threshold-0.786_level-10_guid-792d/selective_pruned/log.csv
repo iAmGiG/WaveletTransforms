@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+792d14b1,db2,10,0.786,selective,9408,9408,0,resnet.embedder.embedder.convolution
+792d14b1,db2,10,0.786,selective,36864,36574,290,resnet.encoder.stages.0.layers.0.layer.0.convolution
+792d14b1,db2,10,0.786,selective,36864,36574,290,resnet.encoder.stages.0.layers.0.layer.1.convolution
+792d14b1,db2,10,0.786,selective,36864,36574,290,resnet.encoder.stages.0.layers.1.layer.0.convolution
+792d14b1,db2,10,0.786,selective,36864,36574,290,resnet.encoder.stages.0.layers.1.layer.1.convolution
+792d14b1,db2,10,0.786,selective,8192,8127,65,resnet.encoder.stages.1.layers.0.shortcut.convolution
+792d14b1,db2,10,0.786,selective,73728,73148,580,resnet.encoder.stages.1.layers.0.layer.0.convolution
+792d14b1,db2,10,0.786,selective,147456,146297,1159,resnet.encoder.stages.1.layers.0.layer.1.convolution
+792d14b1,db2,10,0.786,selective,147456,146297,1159,resnet.encoder.stages.1.layers.1.layer.0.convolution
+792d14b1,db2,10,0.786,selective,147456,146297,1159,resnet.encoder.stages.1.layers.1.layer.1.convolution
+792d14b1,db2,10,0.786,selective,32768,32510,258,resnet.encoder.stages.2.layers.0.shortcut.convolution
+792d14b1,db2,10,0.786,selective,294912,292593,2319,resnet.encoder.stages.2.layers.0.layer.0.convolution
+792d14b1,db2,10,0.786,selective,589824,585187,4637,resnet.encoder.stages.2.layers.0.layer.1.convolution
+792d14b1,db2,10,0.786,selective,589824,585187,4637,resnet.encoder.stages.2.layers.1.layer.0.convolution
+792d14b1,db2,10,0.786,selective,589824,585187,4637,resnet.encoder.stages.2.layers.1.layer.1.convolution
+792d14b1,db2,10,0.786,selective,131072,130041,1031,resnet.encoder.stages.3.layers.0.shortcut.convolution
+792d14b1,db2,10,0.786,selective,1179648,1170375,9273,resnet.encoder.stages.3.layers.0.layer.0.convolution
+792d14b1,db2,10,0.786,selective,2359296,2340751,18545,resnet.encoder.stages.3.layers.0.layer.1.convolution
+792d14b1,db2,10,0.786,selective,2359296,2340751,18545,resnet.encoder.stages.3.layers.1.layer.0.convolution
+792d14b1,db2,10,0.786,selective,2359296,2340751,18545,resnet.encoder.stages.3.layers.1.layer.1.convolution
