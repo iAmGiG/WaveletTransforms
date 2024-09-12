@@ -1,7 +1,0 @@
-Model: selective_pruned
-Accuracy: 0.69772
-F1 Score: 0.6931137889650132
-Recall: 0.69772
-Average Loss: 1.2475091106903828
-Sparsity: 0.006349135946910123
-Sparsity: 0.6349%
