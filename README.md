@@ -26,9 +26,6 @@ This project explores advanced model compression techniques for neural networks,
     - [Conda Environment Setup](#conda-environment-setup)
     - [Project Structure](#project-structure)
   - [Recent Developments](#recent-developments)
-  - [Future Work](#future-work)
-  - [Contributing](#contributing)
-  - [License](#license)
 
 ## Key Techniques
 
