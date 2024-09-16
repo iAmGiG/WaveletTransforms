@@ -144,8 +144,10 @@ def wavelet_pruning(model: PreTrainedModel, wavelet: str, level: int, percentile
     """
     total_pruned_count = 0
     total_non_zero_params = 0
+    threshold_value = percentile / 100  # Convert percentile back to threshold value
+
     selective_pruned_dir = check_and_set_pruned_instance_path(
-        f"{wavelet}_threshold-{percentile}_level-{level}_guid-{guid[:4]}/selective_pruned")
+        f"{wavelet}_threshold-{threshold_value}_level-{level}_guid-{guid[:4]}/selective_pruned")
     selective_log_path = os.path.join(selective_pruned_dir, 'log.csv')
     selective_csv_writer, selective_log_file = setup_csv_writer(
         os.path.normpath(selective_log_path), mode='w')
@@ -158,13 +160,13 @@ def wavelet_pruning(model: PreTrainedModel, wavelet: str, level: int, percentile
             module, wavelet, level, percentile)
         total_pruned_count += layer_pruned_count
         total_non_zero_params += non_zero_params
-        log_pruning_details(selective_csv_writer, guid, wavelet, level, percentile,
+        log_pruning_details(selective_csv_writer, guid, wavelet, level, threshold_value,
                             'selective', original_param_count, non_zero_params, layer_pruned_count, name)
 
     selective_log_file.close()
 
     save_model(model, selective_pruned_dir)
-    append_to_experiment_log(os.path.normpath(csv_path), guid, wavelet, level, percentile,
+    append_to_experiment_log(os.path.normpath(csv_path), guid, wavelet, level, threshold_value,
                              'selective', total_pruned_count, total_non_zero_params, selective_pruned_dir)
 
     print(f"Selectively pruned model saved at {selective_pruned_dir}")

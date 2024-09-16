@@ -91,7 +91,7 @@ flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3
 flags.DEFINE_integer(
     'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.1, 'Percentage of weights to prune (0.0 to 1.0) for min weight pruning and threshold for DWT pruning')
+    'threshold', 0.1, 'Threshold value: For min weight pruning (0.0 to 1.0), for DWT pruning (0.0 to 100.0)')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 
@@ -112,7 +112,7 @@ def log_worker(csv_path):
 def threaded_pruning(pruning_func, model, selective_log_path, guid, wavelet, level, threshold, csv_path, method_name, log_queue):
     """Wrapper function for threaded pruning methods."""
     try:
-        result = pruning_func(selective_log_path, model, guid,
+        result = pruning_func(model, selective_log_path, guid,
                               wavelet, level, threshold, csv_path, log_queue)
         print(f"{method_name} pruning completed.")
         return result
@@ -177,7 +177,7 @@ def main(argv):
     # Selective Pruning Phase (DWT)
     print("Starting Selective (DWT) Pruning")
     selective_log_path = wavelet_pruning(
-        dwt_model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
+        dwt_model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold * 100, FLAGS.csv_path, guid)
     print(f"Selective pruning completed. Log saved at {selective_log_path}")
 
     print("Starting Random pruning")

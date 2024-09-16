@@ -8,7 +8,7 @@ import torch.nn as nn
 from utils import setup_csv_writer, log_pruning_details, check_and_set_pruned_instance_path, get_layer, save_model
 
 
-def random_pruning(selective_log_path: str, model: PreTrainedModel, guid: str, wavelet: str,
+def random_pruning(model: PreTrainedModel, selective_log_path: str, guid: str, wavelet: str,
                    level: int, threshold: float, csv_path: str, log_queue: Optional[Queue] = None) -> None:
     """
     Apply random pruning to the model based on the selective pruning log.
