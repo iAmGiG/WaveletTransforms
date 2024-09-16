@@ -149,6 +149,7 @@ pip install -r requirements.txt
 1. If you haven't already, install [Anaconda](https://www.anaconda.com/products/individual) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) to manage your environments.
 
 2. Create a new Conda environment named wavelet_env with Python 3.9.15 for compatibility with the project's dependencies. Open your terminal or command prompt and run the following command:
+
 ```bash
 conda create --name wavelet_env python=3.9.15
 ```
@@ -170,6 +171,7 @@ This will install the necessary libraries, such as numpy, pywt, scikit-learn, an
 Now, you're ready to start working on the project within this environment. Remember to activate the wavelet_env environment whenever you are working on this project.
 
 ### Project Structure
+
 - **models/:** Contains the neural network models used in the project.
 - **data/:** Directory for storing datasets.
 - **notebooks/:** Jupyter notebooks for experimentation and analysis.
@@ -178,7 +180,9 @@ Now, you're ready to start working on the project within this environment. Remem
 - **utils/:** Utility functions for loading models, logging, and other common tasks.
 
 ### Recent Developments
+
 **Refactored Pruning Logic:**
+
 - Ensured consistency between DWT and Minimum Weight Pruning by pruning only convolutional layers.
 - Resolved discrepancies in layer selection and pruning statistics.
 **Expanded Theoretical Framework:**
