@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+e78d2593,bior4.4,5,0.5,selective,9408,4704,4704,resnet.embedder.embedder.convolution
+e78d2593,bior4.4,5,0.5,selective,36864,18432,18432,resnet.encoder.stages.0.layers.0.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,36864,18432,18432,resnet.encoder.stages.0.layers.0.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,36864,18432,18432,resnet.encoder.stages.0.layers.1.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,36864,18432,18432,resnet.encoder.stages.0.layers.1.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,8192,4096,4096,resnet.encoder.stages.1.layers.0.shortcut.convolution
+e78d2593,bior4.4,5,0.5,selective,73728,36864,36864,resnet.encoder.stages.1.layers.0.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,147456,73728,73728,resnet.encoder.stages.1.layers.0.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,147456,73728,73728,resnet.encoder.stages.1.layers.1.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,147456,73728,73728,resnet.encoder.stages.1.layers.1.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,32768,16384,16384,resnet.encoder.stages.2.layers.0.shortcut.convolution
+e78d2593,bior4.4,5,0.5,selective,294912,147456,147456,resnet.encoder.stages.2.layers.0.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,589824,294912,294912,resnet.encoder.stages.2.layers.0.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,589824,294912,294912,resnet.encoder.stages.2.layers.1.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,589824,294912,294912,resnet.encoder.stages.2.layers.1.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,131072,65536,65536,resnet.encoder.stages.3.layers.0.shortcut.convolution
+e78d2593,bior4.4,5,0.5,selective,1179648,589825,589823,resnet.encoder.stages.3.layers.0.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,2359296,1179648,1179648,resnet.encoder.stages.3.layers.0.layer.1.convolution
+e78d2593,bior4.4,5,0.5,selective,2359296,1179648,1179648,resnet.encoder.stages.3.layers.1.layer.0.convolution
+e78d2593,bior4.4,5,0.5,selective,2359296,1179648,1179648,resnet.encoder.stages.3.layers.1.layer.1.convolution

@@ -86,8 +86,14 @@ flags.DEFINE_string('config_path', '__OGPyTorchModel__/OGModel',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
-flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2'
-                                         ], 'Type of discrete wavelet to use for DWT.')
+flags.DEFINE_enum('wavelet', 'bior4.4', [
+    'haar',
+    'db1', 'db2', 'db4', 'db6',
+    'coif1', 'coif2', 'coif3',
+    'bior1.3', 'bior2.2', 'bior4.4',
+    'rbio1.3', 'rbio2.2', 'rbio4.4',
+    'sym2', 'sym4', 'sym6'
+], 'Type of discrete wavelet to use for DWT.')
 flags.DEFINE_integer(
     'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(

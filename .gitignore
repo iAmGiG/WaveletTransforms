@@ -149,7 +149,8 @@ cython_debug/
 # Ignore tourch Safetensors and config.json
 *.Safetensors
 *.safetensors
-*/config.json
+#*/config.json
+ResNet/StoredModels/*/*/config.json
 
 # Test locations
 ResNet/__OGModel__
