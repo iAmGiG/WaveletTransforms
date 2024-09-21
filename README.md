@@ -179,17 +179,20 @@ Now, you're ready to start working on the project within this environment. Remem
 ### Recent Developments
 
 **Refactored Pruning Logic:**
-
 - Ensured consistency between DWT and Minimum Weight Pruning by pruning only convolutional layers.
 - Resolved discrepancies in layer selection and pruning statistics.
+  
 **Expanded Theoretical Framework:**
 - Added detailed comparisons between DWT pruning and minimum weight pruning.
 - Included discussions on the advantages, disadvantages, and theoretical expectations of each method.
+  
 **Wavelet Selection:**
 - Experimented with different wavelet types, focusing on biorthogonal wavelets for their symmetry and effectiveness in preserving convolutional filter structures.
+  
 **Improved Logging and Reporting:**
 - Enhanced logging to include detailed per-layer pruning statistics.
 - Standardized log formats for easier comparison and analysis.
+  
 **Evaluation Enhancements:**
 - Expanded evaluation metrics to provide a comprehensive assessment of model performance post-pruning.
 - Addressed challenges in measuring inference time and its significance.
