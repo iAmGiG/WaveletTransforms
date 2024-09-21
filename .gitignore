@@ -135,6 +135,9 @@ dmypy.json
 # pytype static type analyzer
 .pytype/
 
+# Ignore all PDF files
+*.pdf
+
 # Cython debug symbols
 cython_debug/
 
@@ -142,6 +145,12 @@ cython_debug/
 .vscode/
 *.code-workspace
 .history/
+
+# Ignore tourch Safetensors and config.json
+*.Safetensors
+*.safetensors
+#*/config.json
+ResNet/StoredModels/*/*/config.json
 
 # Test locations
 ResNet/__OGModel__

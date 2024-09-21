@@ -1,0 +1,21 @@
+GUID,Wavelet,Level,Threshold,DWT Phase,Original Parameter Count,Non-zero Params,Total Pruned Count,Layer Name
+a915889c,bior4.4,5,0.786,min,9408,2014,7394,resnet.embedder.embedder.convolution
+a915889c,bior4.4,5,0.786,min,36864,7889,28975,resnet.encoder.stages.0.layers.0.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,36864,7889,28975,resnet.encoder.stages.0.layers.0.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,36864,7889,28975,resnet.encoder.stages.0.layers.1.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,36864,7889,28975,resnet.encoder.stages.0.layers.1.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,8192,1754,6438,resnet.encoder.stages.1.layers.0.shortcut.convolution
+a915889c,bior4.4,5,0.786,min,73728,15778,57950,resnet.encoder.stages.1.layers.0.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,147456,31556,115900,resnet.encoder.stages.1.layers.0.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,147456,31556,115900,resnet.encoder.stages.1.layers.1.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,147456,31556,115900,resnet.encoder.stages.1.layers.1.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,32768,7013,25755,resnet.encoder.stages.2.layers.0.shortcut.convolution
+a915889c,bior4.4,5,0.786,min,294912,63112,231800,resnet.encoder.stages.2.layers.0.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,589824,126223,463601,resnet.encoder.stages.2.layers.0.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,589824,126223,463601,resnet.encoder.stages.2.layers.1.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,589824,126223,463601,resnet.encoder.stages.2.layers.1.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,131072,28050,103022,resnet.encoder.stages.3.layers.0.shortcut.convolution
+a915889c,bior4.4,5,0.786,min,1179648,252446,927202,resnet.encoder.stages.3.layers.0.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,2359296,504891,1854405,resnet.encoder.stages.3.layers.0.layer.1.convolution
+a915889c,bior4.4,5,0.786,min,2359296,504891,1854405,resnet.encoder.stages.3.layers.1.layer.0.convolution
+a915889c,bior4.4,5,0.786,min,2359296,504891,1854405,resnet.encoder.stages.3.layers.1.layer.1.convolution

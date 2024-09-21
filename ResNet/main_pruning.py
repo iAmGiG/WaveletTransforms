@@ -1,3 +1,49 @@
+"""
+Main Pruning Module
+
+This module serves as the entry point for the neural network pruning experiment.
+It orchestrates the application of multiple pruning techniques to a pre-trained
+ResNet model and compares their effectiveness.
+
+Pruning Techniques Implemented:
+1. Discrete Wavelet Transform (DWT) Pruning
+2. Random Pruning
+3. Minimum Weight Pruning
+
+Key Features:
+- Loads a pre-trained ResNet model
+- Applies DWT pruning to generate a selectively pruned model
+- Applies random pruning and minimum weight pruning in parallel threads
+- Logs results and saves pruned models
+
+Usage:
+Run this script from the command line with various flags to control the pruning process:
+python main_pruning.py --model_path=<path> --config_path=<path> --wavelet=<type> --level=<int> --threshold=<float>
+
+Flags:
+- model_path: Path to the pre-trained ResNet model
+- config_path: Path to the model configuration file
+- wavelet: Type of wavelet to use for DWT (e.g., 'haar', 'db1', 'coif1')
+- level: Level of wavelet decomposition
+- threshold: Threshold value for pruning (0.0 to 1.0)
+  - For DWT pruning: Coefficient threshold
+  - For min weight pruning: Percentage of weights to prune
+
+The script uses threading to apply random and minimum weight pruning concurrently,
+improving efficiency. Results are logged to a CSV file for later analysis.
+
+Dependencies:
+- absl: For flag parsing
+- torch: For tensor operations
+- transformers: For working with pre-trained models
+- threading: For concurrent pruning operations
+- utils: Custom utility functions
+
+Note:
+The 'threshold' parameter now serves a dual purpose, acting as both the DWT coefficient
+threshold and the percentage of weights to prune in minimum weight pruning. This allows
+for more consistent comparison between pruning techniques.
+"""
 import os
 import copy
 import threading
@@ -34,18 +80,24 @@ N is the length of the data.
 The filter length depends on the wavelet used.
 """
 # Command line argument setup
-flags.DEFINE_string('model_path', '__OGPyTorchModel__/model.safetensor',
+flags.DEFINE_string('model_path', '__OGPyTorchModel__/OGModel',
                     'Path to the pre-trained ResNet model (bin file)')
-flags.DEFINE_string('config_path', '__OGPyTorchModel__/config.json',
+flags.DEFINE_string('config_path', '__OGPyTorchModel__/OGModel',
                     'Path to the model configuration file (.json)')
 flags.DEFINE_string('csv_path', 'experiment_log.csv',
                     'Path to the CSV log file')
-flags.DEFINE_enum('wavelet', 'rbio1.3', ['haar', 'db1', 'db2', 'coif1', 'bior1.3', 'rbio1.3', 'sym2'
-                                         ], 'Type of discrete wavelet to use for DWT.')
+flags.DEFINE_enum('wavelet', 'bior4.4', [
+    'haar',
+    'db1', 'db2', 'db4', 'db6',
+    'coif1', 'coif2', 'coif3',
+    'bior1.3', 'bior2.2', 'bior4.4',
+    'rbio1.3', 'rbio2.2', 'rbio4.4',
+    'sym2', 'sym4', 'sym6'
+], 'Type of discrete wavelet to use for DWT.')
 flags.DEFINE_integer(
-    'level', 0, 'Level of decomposition for the wavelet transform')
+    'level', 1, 'Level of decomposition for the wavelet transform')
 flags.DEFINE_float(
-    'threshold', 0.1, 'Threshold value for pruning wavelet coefficients')
+    'threshold', 0.1, 'Threshold value: For min weight pruning (0.0 to 1.0), for DWT pruning (0.0 to 100.0)')
 flags.DEFINE_string('output_dir', 'SavedModels',
                     'Directory to save the pruned models')
 
@@ -66,7 +118,7 @@ def log_worker(csv_path):
 def threaded_pruning(pruning_func, model, selective_log_path, guid, wavelet, level, threshold, csv_path, method_name, log_queue):
     """Wrapper function for threaded pruning methods."""
     try:
-        result = pruning_func(selective_log_path, model, guid,
+        result = pruning_func(model, selective_log_path, guid,
                               wavelet, level, threshold, csv_path, log_queue)
         print(f"{method_name} pruning completed.")
         return result
@@ -101,7 +153,17 @@ def main(argv):
     Returns:
         None
     """
-    model = load_model(FLAGS.model_path, FLAGS.config_path)
+    model_path = FLAGS.model_path
+    config_path = FLAGS.config_path
+
+    print(f"Model directory: {model_path}")
+    print(f"Config file: {config_path}")
+
+    if not os.path.isdir(model_path):
+        raise ValueError(
+            f"Provided model path {model_path} is not a valid directory.")
+
+    model = load_model(model_path, config_path)
     print("Model loaded successfully.")
     print("Generating Guid")
     guid = os.urandom(4).hex()
@@ -121,18 +183,18 @@ def main(argv):
     # Selective Pruning Phase (DWT)
     print("Starting Selective (DWT) Pruning")
     selective_log_path = wavelet_pruning(
-        dwt_model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold, FLAGS.csv_path, guid)
+        dwt_model, FLAGS.wavelet, FLAGS.level, FLAGS.threshold * 100, FLAGS.csv_path, guid)
     print(f"Selective pruning completed. Log saved at {selective_log_path}")
 
-    print("Starting Random purning")
+    print("Starting Random pruning")
     # Create and start threads for random and min weight pruning
     random_thread = threading.Thread(
         target=threaded_pruning,
         args=(random_pruning, random_model, selective_log_path, guid, FLAGS.wavelet,
-            FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Random", log_queue)
+              FLAGS.level, FLAGS.threshold, FLAGS.csv_path, "Random", log_queue)
     )
 
-    print("Starting Min purning")
+    print("Starting Min weight pruning")
     min_weight_thread = threading.Thread(
         target=threaded_pruning,
         args=(min_weight_pruning, min_weight_model, selective_log_path, guid, FLAGS.wavelet,

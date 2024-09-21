@@ -3,8 +3,9 @@ import os
 import json
 import logging
 import torch
-from torch.utils.data import DataLoader
-from transformers import AutoModelForImageClassification, AutoConfig
+import traceback
+from safetensors.torch import load_file as safe_load_file
+from transformers import ResNetForImageClassification, ResNetConfig
 
 
 def get_model_folders(base_path):
@@ -50,24 +51,64 @@ def load_model(model_path):
     Returns:
         model (torch.nn.Module): Loaded pre-trained model.
     """
-    if os.path.isdir(model_path):
-        config_path = os.path.join(model_path, 'config.json')
-        model_file = os.path.join(model_path, 'model.safetensors')
+    try:
+        if os.path.isdir(model_path):
+            # Print the contents of the directory
+            print(f"Contents of the directory {model_path}:")
+            for item in os.listdir(model_path):
+                print(f" - {item}")
 
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Config file not found at {config_path}")
-        if not os.path.exists(model_file):
-            raise FileNotFoundError(f"Model file not found at {model_file}")
+            model_file = os.path.join(model_path, 'model.safetensors')
+            config_file = os.path.join(model_path, 'config.json')
 
-        config = AutoConfig.from_pretrained(config_path)
-        model = AutoModelForImageClassification.from_pretrained(
-            model_path, config=config)
-    else:
-        raise ValueError(
-            f"Provided model path {model_path} is not a valid directory.")
+            if not os.path.exists(model_file):
+                logging.warning(
+                    f"Model file not found in directory: {model_path}. Checking subdirectories.")
 
-    print("Pre-trained model loaded successfully.")
-    return model
+                # Check subdirectories
+                for sub_dir in os.listdir(model_path):
+                    sub_dir_path = os.path.join(model_path, sub_dir)
+                    if os.path.isdir(sub_dir_path):
+                        model_file = os.path.join(
+                            sub_dir_path, 'model.safetensors')
+                        config_file = os.path.join(sub_dir_path, 'config.json')
+                        if os.path.exists(model_file) and os.path.exists(config_file):
+                            with open(config_file, 'r') as f:
+                                config = json.load(f)
+                            model_config = ResNetConfig.from_dict(config)
+                            model = ResNetForImageClassification(model_config)
+                            state_dict = safe_load_file(model_file)
+                            model.load_state_dict(state_dict, strict=False)
+                            logging.info(
+                                f"Model loaded successfully from {sub_dir_path}")
+                            return model, config
+
+                logging.error(
+                    f"Model file not found in directory or its subdirectories: {model_path}")
+                return None, None
+
+            with open(config_file, 'r') as f:
+                config = json.load(f)
+            model_config = ResNetConfig.from_dict(config)
+            model = ResNetForImageClassification(model_config)
+            state_dict = safe_load_file(model_file)
+            model.load_state_dict(state_dict, strict=False)
+
+        else:
+            # Assume model is a single file
+            state_dict = safe_load_file(model_path)
+            model_config = ResNetConfig()
+            model = ResNetForImageClassification(model_config)
+            model.load_state_dict(state_dict, strict=False)
+            config = None
+
+        logging.info(f"Model loaded successfully from {model_path}")
+        return model, config
+
+    except Exception as e:
+        logging.error(f"Failed to load model from {model_path}: {str(e)}")
+        logging.error(traceback.format_exc())
+        return None, None
 
 
 def setup_logging(log_dir):
