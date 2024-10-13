@@ -1,4 +1,8 @@
-# WaveletTransforms
+# WaveletTransforms - [depricated] Finished till further notice.
+
+- Considering this project completed for now. TLDR: the DWT pruning method only marginally better than min-weight pruning method (also presented), but is more computationally demanding. Thus, considering this a "successful exit".
+- Final thoughts, the DWT pruning at a glacned would appear as a novel concept, and might still have room to grow and develop, but at this time, existing methods seam to have already taken this to its final conclusion.
+- If there were future works, they would be mostly consmetic, applying a gui for front end access, this way you would just send in a model via HTTP request to a pruning server, sounds easy, but still would be limited to certain models, or models with particular layer types.
 
 Applying Discrete Wavelet Transform (DWT) and Minimum Weight Pruning for neural network model compression.
 
